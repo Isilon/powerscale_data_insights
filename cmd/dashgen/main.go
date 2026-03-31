@@ -4,19 +4,15 @@
 package main
 
 import (
-	"crypto/tls"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
-	"net/http/cookiejar"
-	"net/url"
 	"os"
 	"strings"
-	"time"
 
-	"golang.org/x/net/publicsuffix"
+	"github.com/isilon/powerscale_data_insights/internal/api"
 )
 
 // ---------------------------------------------------------------------------
@@ -60,92 +56,16 @@ func parseFlags() Config {
 }
 
 // ---------------------------------------------------------------------------
-// PAPI client
+// PAPI helpers using the shared api.Cluster client
 // ---------------------------------------------------------------------------
 
-type PAPIClient struct {
-	cfg        Config
-	httpClient *http.Client
-	baseURL    string
-	csrfToken  string
-}
-
-func NewPAPIClient(cfg Config) (*PAPIClient, error) {
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return nil, fmt.Errorf("creating cookie jar: %w", err)
-	}
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: cfg.SkipVerify},
-	}
-	c := &PAPIClient{
-		cfg:     cfg,
-		baseURL: fmt.Sprintf("https://%s:%d", cfg.Host, cfg.Port),
-		httpClient: &http.Client{
-			Transport: transport,
-			Jar:       jar,
-			Timeout:   30 * time.Second,
-		},
-	}
-	return c, nil
-}
-
-// Authenticate performs session-based authentication.
-// On success the cookie jar holds the session cookie and csrfToken is set.
-func (c *PAPIClient) Authenticate() error {
-	sessionURL := c.baseURL + "/session/1/session"
-	body := fmt.Sprintf(`{"username":%q,"password":%q,"services":["platform"]}`,
-		c.cfg.Username, c.cfg.Password)
-
-	req, err := http.NewRequest("POST", sessionURL, strings.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("creating auth request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("auth request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// 201 Created is the success response for session creation
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("authentication failed: HTTP %d", resp.StatusCode)
-	}
-
-	// Extract CSRF token from cookie jar (same as goppstats does)
-	u, _ := url.Parse(sessionURL)
-	for _, cookie := range c.httpClient.Jar.Cookies(u) {
-		if cookie.Name == "isicsrf" {
-			c.csrfToken = cookie.Value
-		}
-	}
-	return nil
-}
-
-// GET performs an authenticated GET against the PAPI and JSON-decodes the response.
-func (c *PAPIClient) GET(path string, result interface{}) error {
-	req, err := http.NewRequest("GET", c.baseURL+path, nil)
+// papiGET performs an authenticated GET and JSON-decodes the response.
+func papiGET(ctx context.Context, cluster *api.Cluster, path string, result interface{}) error {
+	body, err := cluster.RestGet(ctx, path)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	if c.csrfToken != "" {
-		req.Header.Set("X-CSRF-Token", c.csrfToken)
-		req.Header.Set("Referer", c.baseURL)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("GET %s: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("GET %s returned HTTP %d", path, resp.StatusCode)
-	}
-	return json.NewDecoder(resp.Body).Decode(result)
+	return json.Unmarshal(body, result)
 }
 
 // ---------------------------------------------------------------------------
@@ -971,9 +891,9 @@ func GenerateDashboard(ds DsInfoEntry) Dashboard {
 // fetchDataset queries PAPI v10 for the full dataset list and returns the entry
 // matching datasetID. This matches goppstats' GetDataSetInfo() which fetches
 // /platform/10/performance/datasets (no per-ID endpoint used by goppstats).
-func fetchDataset(client *PAPIClient, datasetID int) (DsInfoEntry, error) {
+func fetchDataset(ctx context.Context, cluster *api.Cluster, datasetID int) (DsInfoEntry, error) {
 	var di DsInfo
-	if err := client.GET("/platform/10/performance/datasets", &di); err != nil {
+	if err := papiGET(ctx, cluster, "/platform/10/performance/datasets", &di); err != nil {
 		return DsInfoEntry{}, fmt.Errorf("fetching dataset list: %w", err)
 	}
 	for _, entry := range di.Datasets {
@@ -990,17 +910,28 @@ func fetchDataset(client *PAPIClient, datasetID int) (DsInfoEntry, error) {
 
 func main() {
 	cfg := parseFlags()
+	ctx := context.Background()
 
-	client, err := NewPAPIClient(cfg)
-	if err != nil {
-		log.Fatalf("Failed to create PAPI client: %v", err)
+	cluster := &api.Cluster{
+		AuthInfo: api.AuthInfo{
+			Username: cfg.Username,
+			Password: cfg.Password,
+		},
+		AuthType:   api.AuthTypeSession,
+		Hostname:   cfg.Host,
+		Port:       cfg.Port,
+		VerifySSL:  !cfg.SkipVerify,
+		UserAgent:  "dashgen/1.0",
+		MaxRetries: 3,
 	}
-	if err := client.Authenticate(); err != nil {
-		log.Fatalf("PAPI authentication failed: %v", err)
+
+	if err := cluster.Connect(ctx); err != nil {
+		log.Fatalf("Failed to connect to cluster: %v", err)
 	}
+	log.Printf("Connected to cluster %s (OneFS %s)", cluster.ClusterName, cluster.OSVersion)
 
 	log.Printf("Fetching dataset %d from %s...", cfg.DatasetID, cfg.Host)
-	ds, err := fetchDataset(client, cfg.DatasetID)
+	ds, err := fetchDataset(ctx, cluster, cfg.DatasetID)
 	if err != nil {
 		log.Fatalf("Failed to fetch dataset: %v", err)
 	}
