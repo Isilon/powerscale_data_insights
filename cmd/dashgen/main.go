@@ -179,283 +179,147 @@ var overflowWorkloadTypes = []string{
 }
 
 // ---------------------------------------------------------------------------
-// Grafana dashboard JSON model (v2beta1 / apiVersion dashboard.grafana.app)
+// Grafana legacy dashboard JSON model
 // ---------------------------------------------------------------------------
 
-// We use map[string]interface{} for the innermost query spec because the
-// InfluxDB query spec has several optional fields and differs between v1/v2.
-
 type Dashboard struct {
-	APIVersion string          `json:"apiVersion"`
-	Kind       string          `json:"kind"`
-	Metadata   DashMeta        `json:"metadata"`
-	Spec       DashSpec        `json:"spec"`
-	Status     json.RawMessage `json:"status"`
+	Inputs               []DashInput       `json:"__inputs"`
+	Requires             []DashRequire     `json:"__requires"`
+	ID                   interface{}       `json:"id"`
+	UID                  interface{}       `json:"uid"`
+	Title                string            `json:"title"`
+	Description          string            `json:"description"`
+	Tags                 []string          `json:"tags"`
+	SchemaVersion        int               `json:"schemaVersion"`
+	Version              int               `json:"version"`
+	Editable             bool              `json:"editable"`
+	GraphTooltip         int               `json:"graphTooltip"`
+	Time                 map[string]string `json:"time"`
+	Timepicker           map[string]any    `json:"timepicker"`
+	Refresh              string            `json:"refresh"`
+	FiscalYearStartMonth int               `json:"fiscalYearStartMonth"`
+	Templating           Templating        `json:"templating"`
+	Annotations          AnnotationList    `json:"annotations"`
+	Panels               []Panel           `json:"panels"`
+	Links                []any             `json:"links"`
 }
 
-type DashMeta struct {
-	Name string `json:"name,omitempty"`
+type DashInput struct {
+	Name        string `json:"name"`
+	Label       string `json:"label"`
+	Description string `json:"description"`
+	Type        string `json:"type"`
+	PluginID    string `json:"pluginId"`
+	PluginName  string `json:"pluginName"`
 }
 
-type DashSpec struct {
-	Annotations  []Annotation         `json:"annotations"`
-	CursorSync   string               `json:"cursorSync"`
-	Description  string               `json:"description"`
-	Editable     bool                 `json:"editable"`
-	Elements     map[string]Panel     `json:"elements"`
-	Layout       GridLayout           `json:"layout"`
-	Links        []interface{}        `json:"links"`
-	LiveNow      bool                 `json:"liveNow"`
-	Preload      bool                 `json:"preload"`
-	Tags         []string             `json:"tags"`
-	TimeSettings TimeSettings         `json:"timeSettings"`
-	Title        string               `json:"title"`
-	Variables    []Variable           `json:"variables"`
+type DashRequire struct {
+	Type    string `json:"type"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
-type Annotation struct {
-	Kind string         `json:"kind"`
-	Spec AnnotationSpec `json:"spec"`
+type Templating struct {
+	List []TemplateVar `json:"list"`
 }
 
-type AnnotationSpec struct {
-	BuiltIn   bool        `json:"builtIn"`
-	Enable    bool        `json:"enable"`
-	Hide      bool        `json:"hide"`
-	IconColor string      `json:"iconColor"`
-	Name      string      `json:"name"`
-	Query     interface{} `json:"query"`
+type TemplateVar struct {
+	Name       string         `json:"name"`
+	Type       string         `json:"type"`
+	Datasource *DSRef         `json:"datasource,omitempty"`
+	Query      any            `json:"query"`
+	Definition string         `json:"definition,omitempty"`
+	Regex      string         `json:"regex"`
+	Sort       int            `json:"sort"`
+	Multi      bool           `json:"multi"`
+	IncludeAll bool           `json:"includeAll"`
+	AllValue   string         `json:"allValue,omitempty"`
+	Current    map[string]any `json:"current"`
+	Refresh    int            `json:"refresh"`
+	Hide       int            `json:"hide"`
+	Label      string         `json:"label,omitempty"`
+	Options    []VarOption    `json:"options,omitempty"`
 }
 
-type Panel struct {
-	Kind string    `json:"kind"`
-	Spec PanelSpec `json:"spec"`
-}
-
-type PanelSpec struct {
-	Data        QueryGroup  `json:"data"`
-	Description string      `json:"description"`
-	ID          int         `json:"id"`
-	Links       []interface{} `json:"links"`
-	Title       string      `json:"title"`
-	VizConfig   VizConfig   `json:"vizConfig"`
-}
-
-type QueryGroup struct {
-	Kind string         `json:"kind"`
-	Spec QueryGroupSpec `json:"spec"`
-}
-
-type QueryGroupSpec struct {
-	Queries        []PanelQuery    `json:"queries"`
-	QueryOptions   interface{}     `json:"queryOptions"`
-	Transformations []interface{}  `json:"transformations"`
-}
-
-type PanelQuery struct {
-	Kind string         `json:"kind"`
-	Spec PanelQuerySpec `json:"spec"`
-}
-
-type PanelQuerySpec struct {
-	Hidden bool        `json:"hidden"`
-	Query  QueryBlock  `json:"query"`
-	RefID  string      `json:"refId"`
-}
-
-type QueryBlock struct {
-	Datasource DSRef                  `json:"datasource"`
-	Group      string                 `json:"group"`
-	Kind       string                 `json:"kind"`
-	Spec       map[string]interface{} `json:"spec"`
-	Version    string                 `json:"version"`
-}
-
-// dsDatasourceVar is the v2beta1 dashboard variable reference for the datasource.
-// All panel queries reference this variable; its value is set by the
-// DatasourceVariable in the variables list, which Grafana populates at import time.
-const dsDatasourceVar = "${datasource}"
-
-type DSRef struct {
-	Name string `json:"name"`
-}
-
-type VizConfig struct {
-	Group   string      `json:"group"`
-	Kind    string      `json:"kind"`
-	Spec    VizSpec     `json:"spec"`
-	Version string      `json:"version"`
-}
-
-type VizSpec struct {
-	FieldConfig FieldConfig `json:"fieldConfig"`
-	Options     VizOptions  `json:"options"`
-}
-
-type FieldConfig struct {
-	Defaults  FieldDefaults `json:"defaults"`
-	Overrides []interface{} `json:"overrides"`
-}
-
-type FieldDefaults struct {
-	Color   map[string]string `json:"color"`
-	Custom  map[string]interface{} `json:"custom"`
-	Thresholds Thresholds     `json:"thresholds"`
-	Unit    string            `json:"unit"`
-}
-
-type Thresholds struct {
-	Mode  string            `json:"mode"`
-	Steps []ThresholdStep   `json:"steps"`
-}
-
-type ThresholdStep struct {
-	Color string      `json:"color"`
-	Value interface{} `json:"value"`
-}
-
-type VizOptions struct {
-	Legend  LegendOptions  `json:"legend"`
-	Tooltip TooltipOptions `json:"tooltip"`
-}
-
-type LegendOptions struct {
-	Calcs       []string `json:"calcs"`
-	DisplayMode string   `json:"displayMode"`
-	Placement   string   `json:"placement"`
-	ShowLegend  bool     `json:"showLegend"`
-}
-
-type TooltipOptions struct {
-	HideZeros bool   `json:"hideZeros"`
-	Mode      string `json:"mode"`
-	Sort      string `json:"sort"`
-}
-
-type GridLayout struct {
-	Kind string         `json:"kind"`
-	Spec GridLayoutSpec `json:"spec"`
-}
-
-type GridLayoutSpec struct {
-	Items []GridLayoutItem `json:"items"`
-}
-
-type GridLayoutItem struct {
-	Kind string             `json:"kind"`
-	Spec GridLayoutItemSpec `json:"spec"`
-}
-
-type GridLayoutItemSpec struct {
-	Element ElementRef `json:"element"`
-	Height  int        `json:"height"`
-	Width   int        `json:"width"`
-	X       int        `json:"x"`
-	Y       int        `json:"y"`
-}
-
-type ElementRef struct {
-	Kind string `json:"kind"`
-	Name string `json:"name"`
-}
-
-type TimeSettings struct {
-	AutoRefresh          string   `json:"autoRefresh"`
-	AutoRefreshIntervals []string `json:"autoRefreshIntervals"`
-	FiscalYearStartMonth int      `json:"fiscalYearStartMonth"`
-	From                 string   `json:"from"`
-	HideTimepicker       bool     `json:"hideTimepicker"`
-	Timezone             string   `json:"timezone"`
-	To                   string   `json:"to"`
-}
-
-// Variable is the top-level discriminated union entry in spec.variables.
-// Spec is interface{} so each kind can supply its own distinct struct,
-// avoiding CUE schema conflicts in the v2beta1 API.
-type Variable struct {
-	Kind string      `json:"kind"`
-	Spec interface{} `json:"spec"`
-}
-
-// VarCurrent is the current selected value for a variable.
-type VarCurrent struct {
-	Text  string `json:"text"`
-	Value string `json:"value"`
-}
-
-// VarOption is a single selectable option for a CustomVariable.
 type VarOption struct {
 	Selected bool   `json:"selected"`
 	Text     string `json:"text"`
 	Value    string `json:"value"`
 }
 
-// DatasourceVariableSpec matches the v2beta1 spec for kind=DatasourceVariable.
-// Grafana presents this as a datasource picker at import time and whenever
-// the variable is shown on the dashboard.
-type DatasourceVariableSpec struct {
-	Current     VarCurrent  `json:"current"`
-	Hide        string      `json:"hide"`
-	IncludeAll  bool        `json:"includeAll"`
-	Multi       bool        `json:"multi"`
-	Name        string      `json:"name"`
-	Options     []VarOption `json:"options"`
-	PluginID    string      `json:"pluginId"`
-	Refresh     string      `json:"refresh"`
-	Regex       string      `json:"regex"`
-	SkipURLSync bool        `json:"skipUrlSync"`
+type DSRef struct {
+	Type string `json:"type"`
+	UID  string `json:"uid"`
 }
 
-// QueryVariableSpec matches the v2beta1 spec for kind=QueryVariable.
-type QueryVariableSpec struct {
-	AllowCustomValue bool          `json:"allowCustomValue"`
-	Current          VarCurrent    `json:"current"`
-	Definition       string        `json:"definition"`
-	Hide             string        `json:"hide"`
-	IncludeAll       bool          `json:"includeAll"`
-	Multi            bool          `json:"multi"`
-	Name             string        `json:"name"`
-	Options          []VarOption   `json:"options"`
-	Query            QueryVarQuery `json:"query"`
-	Refresh          string        `json:"refresh"`
-	Regex            string        `json:"regex"`
-	SkipURLSync      bool          `json:"skipUrlSync"`
-	Sort             string        `json:"sort"`
+type AnnotationList struct {
+	List []Annotation `json:"list"`
 }
 
-// QueryVarQuery is the nested query object inside a QueryVariable spec.
-type QueryVarQuery struct {
-	Datasource DSRef             `json:"datasource"`
-	Group      string            `json:"group"`
-	Kind       string            `json:"kind"`
-	Spec       QueryVarQuerySpec `json:"spec"`
-	Version    string            `json:"version"`
+type Annotation struct {
+	BuiltIn    int    `json:"builtIn"`
+	Datasource DSRef  `json:"datasource"`
+	Enable     bool   `json:"enable"`
+	Hide       bool   `json:"hide"`
+	IconColor  string `json:"iconColor"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
 }
 
-// QueryVarQuerySpec holds the legacy InfluxDB query string.
-type QueryVarQuerySpec struct {
-	LegacyStringValue string `json:"__legacyStringValue"`
+type Panel struct {
+	ID          int            `json:"id"`
+	Type        string         `json:"type"`
+	Title       string         `json:"title"`
+	Description string         `json:"description,omitempty"`
+	GridPos     GridPos        `json:"gridPos"`
+	Datasource  *DSRef         `json:"datasource,omitempty"`
+	Targets     []Target       `json:"targets,omitempty"`
+	FieldConfig *FieldConfig   `json:"fieldConfig,omitempty"`
+	Options     map[string]any `json:"options,omitempty"`
 }
 
-// CustomVariableSpec matches the v2beta1 spec for kind=CustomVariable.
-type CustomVariableSpec struct {
-	AllowCustomValue bool        `json:"allowCustomValue"`
-	Current          VarCurrent  `json:"current"`
-	Hide             string      `json:"hide"`
-	IncludeAll       bool        `json:"includeAll"`
-	Label            string      `json:"label,omitempty"`
-	Multi            bool        `json:"multi"`
-	Name             string      `json:"name"`
-	Options          []VarOption `json:"options"`
-	Query            string      `json:"query"`
-	SkipURLSync      bool        `json:"skipUrlSync"`
+type GridPos struct {
+	H int `json:"h"`
+	W int `json:"w"`
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+type Target struct {
+	RefID        string `json:"refId"`
+	Datasource   DSRef  `json:"datasource"`
+	RawQuery     bool   `json:"rawQuery"`
+	Query        string `json:"query"`
+	ResultFormat string `json:"resultFormat"`
+	Alias        string `json:"alias,omitempty"`
+}
+
+type FieldConfig struct {
+	Defaults  FieldDefaults `json:"defaults"`
+	Overrides []any         `json:"overrides"`
+}
+
+type FieldDefaults struct {
+	Color      map[string]string `json:"color,omitempty"`
+	Custom     map[string]any    `json:"custom,omitempty"`
+	Unit       string            `json:"unit,omitempty"`
+	Thresholds *Thresholds       `json:"thresholds,omitempty"`
+}
+
+type Thresholds struct {
+	Mode  string          `json:"mode"`
+	Steps []ThresholdStep `json:"steps"`
+}
+
+type ThresholdStep struct {
+	Color string `json:"color"`
+	Value any    `json:"value"`
 }
 
 // ---------------------------------------------------------------------------
 // Dashboard generation
 // ---------------------------------------------------------------------------
-
-const grafanaVersion = "12.3.2+security-01"
 
 func refID(n int) string {
 	// A-Z, then AA, AB, ...
@@ -502,24 +366,6 @@ func buildOverflowQuery(measurement, field, agg, scaleExpr, workloadType string)
 	)
 }
 
-// buildGroupBySpec builds the groupBy array for the non-raw query spec.
-func buildGroupBySpec(groupByTags []string) []map[string]interface{} {
-	gb := []map[string]interface{}{
-		{"params": []string{"$__interval"}, "type": "time"},
-	}
-	for _, t := range groupByTags {
-		gb = append(gb, map[string]interface{}{
-			"params": []string{t + "::tag"},
-			"type":   "tag",
-		})
-	}
-	gb = append(gb, map[string]interface{}{
-		"params": []string{"null"},
-		"type":   "fill",
-	})
-	return gb
-}
-
 // aliasForTags builds a Grafana alias string referencing the group-by tags.
 func aliasForTags(groupByTags []string) string {
 	if len(groupByTags) == 0 {
@@ -530,55 +376,6 @@ func aliasForTags(groupByTags []string) string {
 		parts[i] = t + ": $tag_" + t
 	}
 	return strings.Join(parts, " | ")
-}
-
-// makeSelectSpec returns the InfluxDB query builder "select" array.
-func makeSelectSpec(field, agg, scaleExpr string) []interface{} {
-	sel := []map[string]interface{}{
-		{"params": []string{field}, "type": "field"},
-		{"params": []string{}, "type": agg},
-	}
-	if scaleExpr != "" {
-		sel = append(sel, map[string]interface{}{
-			"params": []string{strings.TrimSpace(scaleExpr)},
-			"type":   "math",
-		})
-	}
-	result := make([]interface{}, len(sel))
-	for i, s := range sel {
-		result[i] = s
-	}
-	return []interface{}{result}
-}
-
-// makeInfluxV1QuerySpec builds the spec map for an InfluxDB v1 normal query.
-func makeInfluxV1NormalQuerySpec(measurement, field, agg, scaleExpr, alias string, groupByTags []string) map[string]interface{} {
-	return map[string]interface{}{
-		"alias":       alias,
-		"groupBy":     buildGroupBySpec(groupByTags),
-		"measurement": measurement,
-		"orderByTime": "ASC",
-		"policy":      "default",
-		"query":       buildNormalQuery(measurement, field, agg, scaleExpr, groupByTags),
-		"rawQuery":    true,
-		"resultFormat": "time_series",
-		"select":      makeSelectSpec(field, agg, scaleExpr),
-	}
-}
-
-// makeInfluxV1OverflowQuerySpec builds the spec map for an InfluxDB v1 overflow query.
-func makeInfluxV1OverflowQuerySpec(measurement, field, agg, scaleExpr, workloadType string) map[string]interface{} {
-	return map[string]interface{}{
-		"alias":        workloadType,
-		"groupBy":      buildGroupBySpec(nil),
-		"measurement":  measurement,
-		"orderByTime":  "ASC",
-		"policy":       "default",
-		"query":        buildOverflowQuery(measurement, field, agg, scaleExpr, workloadType),
-		"rawQuery":     true,
-		"resultFormat": "time_series",
-		"select":       makeSelectSpec(field, agg, scaleExpr),
-	}
 }
 
 // buildPanel constructs a single time-series panel for one metric.
@@ -595,244 +392,127 @@ func buildPanel(id int, ds DsInfoEntry, metric string, meta MetricMeta) Panel {
 		groupByTags[i] = influxTagName(f)
 	}
 
-	queries := []PanelQuery{}
+	dsRef := DSRef{Type: "influxdb", UID: "${DS_INFLUXDB}"}
+	targets := []Target{}
 	qIdx := 0
 
 	// Query A: normal (partitioned) data grouped by dataset attributes
-	normalSpec := makeInfluxV1NormalQuerySpec(
-		measurement, metric, meta.Agg, meta.ScaleExpr,
-		aliasForTags(groupByTags), groupByTags,
-	)
-	queries = append(queries, PanelQuery{
-		Kind: "PanelQuery",
-		Spec: PanelQuerySpec{
-			Hidden: false,
-			RefID:  refID(qIdx),
-			Query: QueryBlock{
-				Datasource: DSRef{Name: dsDatasourceVar},
-				Group:      "influxdb",
-				Kind:       "DataQuery",
-				Spec:       normalSpec,
-				Version:    "v0",
-			},
-		},
+	targets = append(targets, Target{
+		RefID:        refID(qIdx),
+		Datasource:   dsRef,
+		RawQuery:     true,
+		Query:        buildNormalQuery(measurement, metric, meta.Agg, meta.ScaleExpr, groupByTags),
+		ResultFormat: "time_series",
+		Alias:        aliasForTags(groupByTags),
 	})
 	qIdx++
 
 	// Queries B-F: one per overflow workload_type, gated by [[overflow]]
 	for _, wt := range overflowWorkloadTypes {
-		ovSpec := makeInfluxV1OverflowQuerySpec(measurement, metric, meta.Agg, meta.ScaleExpr, wt)
-		queries = append(queries, PanelQuery{
-			Kind: "PanelQuery",
-			Spec: PanelQuerySpec{
-				Hidden: false,
-				RefID:  refID(qIdx),
-				Query: QueryBlock{
-					Datasource: DSRef{Name: dsDatasourceVar},
-					Group:      "influxdb",
-					Kind:       "DataQuery",
-					Spec:       ovSpec,
-					Version:    "v0",
-				},
-			},
+		targets = append(targets, Target{
+			RefID:        refID(qIdx),
+			Datasource:   dsRef,
+			RawQuery:     true,
+			Query:        buildOverflowQuery(measurement, metric, meta.Agg, meta.ScaleExpr, wt),
+			ResultFormat: "time_series",
+			Alias:        wt,
 		})
 		qIdx++
 	}
 
 	return Panel{
-		Kind: "Panel",
-		Spec: PanelSpec{
-			Data: QueryGroup{
-				Kind: "QueryGroup",
-				Spec: QueryGroupSpec{
-					Queries:         queries,
-					QueryOptions:    map[string]interface{}{},
-					Transformations: []interface{}{},
+		ID:         id,
+		Type:       "timeseries",
+		Title:      meta.Title,
+		GridPos:    GridPos{H: 8, W: 24, X: 0, Y: 0}, // Y set later by GenerateDashboard
+		Datasource: &dsRef,
+		Targets:    targets,
+		FieldConfig: &FieldConfig{
+			Defaults: FieldDefaults{
+				Color: map[string]string{"mode": "palette-classic"},
+				Unit:  meta.Unit,
+				Custom: map[string]any{
+					"drawStyle":         "line",
+					"lineInterpolation": "linear",
+					"lineWidth":         1,
+					"fillOpacity":       10,
+					"pointSize":         5,
+					"showPoints":        "auto",
+					"spanNulls":         60000,
+					"stacking":          map[string]string{"group": "A", "mode": "none"},
 				},
-			},
-			Description: "",
-			ID:          id,
-			Links:       []interface{}{},
-			Title:       meta.Title,
-			VizConfig: VizConfig{
-				Group:   "timeseries",
-				Kind:    "VizConfig",
-				Version: grafanaVersion,
-				Spec: VizSpec{
-					FieldConfig: FieldConfig{
-						Defaults: FieldDefaults{
-							Color: map[string]string{"mode": "palette-classic"},
-							Custom: map[string]interface{}{
-								"axisBorderShow":    false,
-								"axisCenteredZero":  false,
-								"axisColorMode":     "text",
-								"axisLabel":         "",
-								"axisPlacement":     "auto",
-								"barAlignment":      0,
-								"barWidthFactor":    0.6,
-								"drawStyle":         "line",
-								"fillOpacity":       0,
-								"gradientMode":      "none",
-								"hideFrom":          map[string]bool{"legend": false, "tooltip": false, "viz": false},
-								"insertNulls":       false,
-								"lineInterpolation": "linear",
-								"lineWidth":         1,
-								"pointSize":         5,
-								"scaleDistribution": map[string]string{"type": "linear"},
-								"showPoints":        "auto",
-								"showValues":        false,
-								"spanNulls":         60000,
-								"stacking":          map[string]string{"group": "A", "mode": "none"},
-								"thresholdsStyle":   map[string]string{"mode": "off"},
-							},
-							Thresholds: Thresholds{
-								Mode: "absolute",
-								Steps: []ThresholdStep{
-									{Color: "green", Value: 0},
-									{Color: "red", Value: 80},
-								},
-							},
-							Unit: meta.Unit,
-						},
-						Overrides: []interface{}{},
-					},
-					Options: VizOptions{
-						Legend: LegendOptions{
-							Calcs:       []string{},
-							DisplayMode: "list",
-							Placement:   "bottom",
-							ShowLegend:  true,
-						},
-						Tooltip: TooltipOptions{
-							HideZeros: false,
-							Mode:      "single",
-							Sort:      "none",
-						},
+				Thresholds: &Thresholds{
+					Mode: "absolute",
+					Steps: []ThresholdStep{
+						{Color: "green", Value: nil},
+						{Color: "red", Value: 80},
 					},
 				},
 			},
+			Overrides: []any{},
 		},
-	}
-}
-
-// buildDatasourceVariable returns the InfluxDB datasource picker DatasourceVariable.
-// Grafana presents this in the import dialog and as a dropdown on the dashboard,
-// allowing the user to select which configured InfluxDB datasource to use.
-func buildDatasourceVariable() Variable {
-	return Variable{
-		Kind: "DatasourceVariable",
-		Spec: DatasourceVariableSpec{
-			Current:     VarCurrent{Text: "", Value: ""},
-			Hide:        "dontHide",
-			IncludeAll:  false,
-			Multi:       false,
-			Name:        "datasource",
-			Options:     []VarOption{},
-			PluginID:    "influxdb",
-			Refresh:     "onDashboardLoad",
-			Regex:       "",
-			SkipURLSync: false,
-		},
-	}
-}
-
-// buildClusterVariable returns the cluster selector QueryVariable.
-func buildClusterVariable() Variable {
-	qStr := `show tag values with key = "cluster"`
-	return Variable{
-		Kind: "QueryVariable",
-		Spec: QueryVariableSpec{
-			AllowCustomValue: true,
-			Current:          VarCurrent{Text: "", Value: ""},
-			Definition:       qStr,
-			Hide:             "dontHide",
-			IncludeAll:       false,
-			Multi:            false,
-			Name:             "cluster",
-			Options:          []VarOption{},
-				Query: QueryVarQuery{
-					Datasource: DSRef{Name: dsDatasourceVar},
-				Group:      "influxdb",
-				Kind:       "DataQuery",
-				Spec:       QueryVarQuerySpec{LegacyStringValue: qStr},
-				Version:    "v0",
+		Options: map[string]any{
+			"legend": map[string]any{
+				"displayMode": "list",
+				"placement":   "bottom",
+				"showLegend":  true,
 			},
-			Refresh:     "onDashboardLoad",
-			Regex:       "",
-			SkipURLSync: false,
-			Sort:        "disabled",
-		},
-	}
-}
-
-// buildOverflowVariable returns the overflow toggle CustomVariable.
-func buildOverflowVariable() Variable {
-	return Variable{
-		Kind: "CustomVariable",
-		Spec: CustomVariableSpec{
-			AllowCustomValue: true,
-			Current:          VarCurrent{Text: "disabled", Value: "0"},
-			Hide:             "dontHide",
-			IncludeAll:       false,
-			Label:            "Overflow Enabled",
-			Multi:            false,
-			Name:             "overflow",
-			Options: []VarOption{
-				{Selected: true, Text: "disabled", Value: "0"},
-				{Selected: false, Text: "enabled", Value: "1"},
-			},
-			Query:       "disabled : 0, enabled : 1",
-			SkipURLSync: false,
-		},
-	}
-}
-
-func buildAnnotations() []Annotation {
-	return []Annotation{
-		{
-			Kind: "AnnotationQuery",
-			Spec: AnnotationSpec{
-				BuiltIn:   true,
-				Enable:    true,
-				Hide:      true,
-				IconColor: "rgba(0, 211, 255, 1)",
-				Name:      "Annotations & Alerts",
-				Query: map[string]interface{}{
-					"datasource": map[string]string{"name": "-- Grafana --"},
-					"group":      "grafana",
-					"kind":       "DataQuery",
-					"spec":       map[string]interface{}{},
-					"version":    "v0",
-				},
+			"tooltip": map[string]any{
+				"mode": "multi",
+				"sort": "desc",
 			},
 		},
 	}
 }
 
-// GenerateDashboard produces the full Grafana dashboard for a dataset.
+// buildClusterVariable returns the cluster selector query variable.
+func buildClusterVariable() TemplateVar {
+	return TemplateVar{
+		Name:       "cluster",
+		Type:       "query",
+		Datasource: &DSRef{Type: "influxdb", UID: "${DS_INFLUXDB}"},
+		Query:      `SHOW TAG VALUES WITH KEY = "cluster"`,
+		Definition: `SHOW TAG VALUES WITH KEY = "cluster"`,
+		Sort:       1,
+		Multi:      false,
+		IncludeAll: false,
+		Current:    map[string]any{},
+		Refresh:    1,
+		Hide:       0,
+	}
+}
+
+// buildOverflowVariable returns the overflow toggle custom variable.
+func buildOverflowVariable() TemplateVar {
+	return TemplateVar{
+		Name:    "overflow",
+		Type:    "custom",
+		Label:   "Overflow Enabled",
+		Query:   "disabled : 0,enabled : 1",
+		Multi:   false,
+		Current: map[string]any{"text": "disabled", "value": "0"},
+		Refresh: 0,
+		Hide:    0,
+		Options: []VarOption{
+			{Selected: true, Text: "disabled", Value: "0"},
+			{Selected: false, Text: "enabled", Value: "1"},
+		},
+	}
+}
+
+// GenerateDashboard produces the full Grafana legacy-format dashboard for a dataset.
 func GenerateDashboard(ds DsInfoEntry) Dashboard {
-	panels := map[string]Panel{}
-	layoutItems := []GridLayoutItem{}
-
+	panels := []Panel{}
 	panelID := 1
 	yPos := 0
+
 	for _, metric := range panelMetrics {
 		meta := metaFor(metric)
-		panelKey := fmt.Sprintf("panel-%d", panelID)
-		panels[panelKey] = buildPanel(panelID, ds, metric, meta)
-
-		layoutItems = append(layoutItems, GridLayoutItem{
-			Kind: "GridLayoutItem",
-			Spec: GridLayoutItemSpec{
-				Element: ElementRef{Kind: "ElementReference", Name: panelKey},
-				Height:  7,
-				Width:   24,
-				X:       0,
-				Y:       yPos,
-			},
-		})
+		panel := buildPanel(panelID, ds, metric, meta)
+		panel.GridPos.Y = yPos
+		panels = append(panels, panel)
 		panelID++
-		yPos += 7
+		yPos += 8
 	}
 
 	// Build human-readable attribute list for the description using translated tag names.
@@ -847,40 +527,51 @@ func GenerateDashboard(ds DsInfoEntry) Dashboard {
 	description := fmt.Sprintf("Dataset %d (%s) – breakout by %s", ds.Id, ds.Name, attrStr)
 
 	return Dashboard{
-		APIVersion: "dashboard.grafana.app/v2beta1",
-		Kind:       "Dashboard",
-		Metadata:   DashMeta{},
-		Status:     json.RawMessage("{}"),
-		Spec: DashSpec{
-			Annotations:  buildAnnotations(),
-			CursorSync:   "Off",
-			Description:  description,
-			Editable:     true,
-			Elements:     panels,
-			Layout: GridLayout{
-				Kind: "GridLayout",
-				Spec: GridLayoutSpec{Items: layoutItems},
-			},
-			Links:   []interface{}{},
-			LiveNow: false,
-			Preload: false,
-			Tags:    []string{"goppstats", "powerscale"},
-			TimeSettings: TimeSettings{
-				AutoRefresh: "30s",
-				AutoRefreshIntervals: []string{
-					"30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d",
-				},
-				From:           "now-30m",
-				HideTimepicker: false,
-				To:             "now",
-			},
-			Title: title,
-			Variables: []Variable{
-				buildDatasourceVariable(),
+		Inputs: []DashInput{{
+			Name:        "DS_INFLUXDB",
+			Label:       "InfluxDB",
+			Description: "InfluxDB datasource for PowerScale PP metrics",
+			Type:        "datasource",
+			PluginID:    "influxdb",
+			PluginName:  "InfluxDB",
+		}},
+		Requires: []DashRequire{
+			{Type: "grafana", ID: "grafana", Name: "Grafana", Version: "10.0.0"},
+			{Type: "datasource", ID: "influxdb", Name: "InfluxDB", Version: "1.0.0"},
+			{Type: "panel", ID: "timeseries", Name: "Time series", Version: ""},
+		},
+		ID:            nil,
+		UID:           nil,
+		Title:         title,
+		Description:   description,
+		Tags:          []string{"goppstats", "powerscale"},
+		SchemaVersion: 39,
+		Version:       1,
+		Editable:      true,
+		GraphTooltip:  1,
+		Time:          map[string]string{"from": "now-30m", "to": "now"},
+		Timepicker:    map[string]any{},
+		Refresh:       "30s",
+		FiscalYearStartMonth: 0,
+		Templating: Templating{
+			List: []TemplateVar{
 				buildClusterVariable(),
 				buildOverflowVariable(),
 			},
 		},
+		Annotations: AnnotationList{
+			List: []Annotation{{
+				BuiltIn:    1,
+				Datasource: DSRef{Type: "grafana", UID: "-- Grafana --"},
+				Enable:     true,
+				Hide:       true,
+				IconColor:  "rgba(0, 211, 255, 1)",
+				Name:       "Annotations & Alerts",
+				Type:       "dashboard",
+			}},
+		},
+		Panels: panels,
+		Links:  []any{},
 	}
 }
 
