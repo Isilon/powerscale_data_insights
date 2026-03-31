@@ -83,6 +83,36 @@ protocol-specific throughput/ops/latency
 **Variables:** cluster (single-select), protocol (single-select: nfs, nfs3,
 nfs4, smb1, smb2, hdfs, ftp, siq, lsass_in, lsass_out, papi)
 
+### PowerScale - Drive Statistics
+
+**File:** `drive_stats.json`
+
+Per-node disk performance dashboard. Designed to help identify nodes with
+abnormal latency or queue depth, especially on large clusters.
+
+**Cluster-wide overview (stat panels):**
+- Total Disk IOPS, Read IOPS, Write IOPS
+- Read Throughput, Write Throughput
+
+**Node Health Summary (table):**
+- One row per node showing current access latency, I/O scheduler latency,
+  queue depth, busy %, and slow accesses per second
+- Sorted by access latency descending (worst nodes first)
+- Color-coded thresholds for quick identification of problem nodes
+
+**Per-node time-series panels:**
+- Disk Access Latency by Node (ms)
+- I/O Scheduler Latency by Node (ms)
+- I/O Scheduler Queue Depth by Node
+- Disk Busy % by Node
+- Disk Throughput by Node (reads positive, writes negative)
+- Disk IOPS by Node (reads positive, writes negative)
+- Average I/O Size by Node (read and write)
+- Slow Disk Accesses by Node
+
+**Variables:** cluster (single-select), node (multi-select with include-all,
+populated from selected cluster)
+
 ## Thresholds
 
 The dashboards use consistent threshold values:
@@ -94,6 +124,10 @@ The dashboards use consistent threshold values:
 | Latency | < 10ms | 10-25ms | >= 25ms |
 | Nodes Down | 0 | >= 1 | >= 2 |
 | Health | 0 (Healthy) | 1 (Attention) | 2 (Down) |
+| Disk Access Latency | < 5ms | 5-20ms | >= 20ms |
+| Disk Queue Depth | < 5 | 5-20 | >= 20 |
+| Disk Busy | < 50% | 50-80% | >= 80% |
+| Slow Accesses | 0 | >= 1/s | >= 10/s |
 
 ## Importing Dashboards
 
