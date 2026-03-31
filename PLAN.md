@@ -154,7 +154,7 @@ powerscale_data_insights/
 
 ## Phases
 
-### Phase 1: Repository Scaffolding & Code Migration
+### Phase 1: Repository Scaffolding & Code Migration — COMPLETE
 
 **Goal:** Establish the monorepo, move existing code in, verify everything
 builds and tests pass. Zero logic changes.
@@ -178,7 +178,7 @@ builds and tests pass. Zero logic changes.
 
 ---
 
-### Phase 2: Shared Library Extraction
+### Phase 2: Shared Library Extraction — COMPLETE
 
 **Goal:** Extract duplicated code from gostats/goppstats into `internal/`
 packages. Eliminate copy-paste maintenance burden.
