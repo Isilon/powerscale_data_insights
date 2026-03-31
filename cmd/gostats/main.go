@@ -14,6 +14,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/isilon/powerscale_data_insights/internal/config"
+	"github.com/isilon/powerscale_data_insights/internal/logging"
+	"github.com/isilon/powerscale_data_insights/internal/platform"
 )
 
 // Version is the released program version
@@ -34,6 +38,9 @@ const (
 	promPluginName     = "prometheus"
 )
 
+// Default logger
+var log *slog.Logger
+
 // parsed/populated stat structures
 type sgRefresh struct {
 	multiplier float64
@@ -51,12 +58,12 @@ var checkStatReturn = flag.Bool("check-stat-return",
 	"Verify that the api returns results for every stat requested")
 
 func die(msg string, args ...any) {
-	log.Log(context.Background(), LevelFatal, msg, args...)
+	log.Log(context.Background(), logging.LevelFatal, msg, args...)
 	os.Exit(1)
 }
 
 func main() {
-	setupEarlyLogging()
+	log = logging.SetupEarlyLogging()
 	logFileName := flag.String("logfile", "", "pathname of log file")
 	configFileName := flag.String("config-file", "idic.toml", "pathname of config file")
 	versionFlag := flag.Bool("version", false, "Print application version")
@@ -74,7 +81,7 @@ func main() {
 	conf := mustReadConfig(*configFileName)
 
 	// set up logging
-	setupLogging(conf.Logging, *logLevel, *logFileName)
+	log = logging.Setup("gostats", conf.Logging, *logLevel, *logFileName)
 
 	// top-level context cancelled on SIGTERM or SIGINT
 	ctx, cancel := context.WithCancel(context.Background())
@@ -88,7 +95,7 @@ func main() {
 	go func() {
 		select {
 		case <-sigterm:
-			log.Log(context.Background(), LevelNotice, "shutdown signal received")
+			log.Log(context.Background(), logging.LevelNotice, "shutdown signal received")
 			cancel()
 		case <-ctx.Done():
 		}
@@ -98,7 +105,7 @@ func main() {
 	reload := make(chan struct{}, 1)
 
 	sighup := make(chan os.Signal, 1)
-	notifySIGHUP(sighup)
+	platform.NotifySIGHUP(sighup)
 	defer signal.Stop(sighup)
 	// Forward SIGHUP to the unified reload channel.
 	go func() {
@@ -108,7 +115,7 @@ func main() {
 				if !ok {
 					return
 				}
-				log.Log(ctx, LevelNotice, "SIGHUP received - reloading config")
+				log.Log(ctx, logging.LevelNotice, "SIGHUP received - reloading config")
 				select {
 				case reload <- struct{}{}:
 				default: // reload already pending; skip
@@ -120,10 +127,10 @@ func main() {
 	}()
 
 	// announce ourselves
-	log.Log(ctx, LevelNotice, "Starting gostats", slog.String("version", Version))
+	log.Log(ctx, logging.LevelNotice, "Starting gostats", slog.String("version", Version))
 
 	// Watch the config file for changes; feeds the same reload channel as SIGHUP.
-	if err := startConfigWatcher(ctx, *configFileName, reload); err != nil {
+	if err := platform.StartConfigWatcher(ctx, *configFileName, reload); err != nil {
 		log.Warn("Config file watching not available", slog.String("error", err.Error()))
 	}
 
@@ -158,7 +165,7 @@ outer:
 				continue
 			}
 			wg.Add(1)
-			go func(ci int, cl clusterConf) {
+			go func(ci int, cl config.ClusterConfig) {
 				log.Info("spawning collection loop", slog.String("cluster", cl.Hostname))
 				defer wg.Done()
 				statsloop(runCtx, &conf, ci, sg)
@@ -187,8 +194,8 @@ outer:
 				// conf is unchanged; the loop restarts with the existing config
 			} else {
 				conf = newConf
-				setupLogging(conf.Logging, *logLevel, *logFileName)
-				log.Log(ctx, LevelNotice, "Config reloaded successfully")
+				log = logging.Setup("gostats", conf.Logging, *logLevel, *logFileName)
+				log.Log(ctx, logging.LevelNotice, "Config reloaded successfully")
 			}
 			continue
 		case <-done:
@@ -200,7 +207,7 @@ outer:
 			break outer
 		}
 	}
-	log.Log(ctx, LevelNotice, "All collectors complete - exiting")
+	log.Log(ctx, logging.LevelNotice, "All collectors complete - exiting")
 }
 
 // parseStatConfig parses the stat-collection TOML config
@@ -304,13 +311,13 @@ type statTimeSet struct {
 // it connects to the cluster, determines the stats to collect and their
 // collection intervals, and then enters a loop collecting and writing
 // stats to the backend database
-func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]statGroup) {
+func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]statGroup) {
 	var err error
 	var password string
 	var ss DBWriter // ss = stats sink
 
-	cc := config.Clusters[ci]
-	gc := config.Global
+	cc := conf.Clusters[ci]
+	gc := conf.Global
 
 	var preserveCase bool
 
@@ -334,7 +341,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 		log.Error("Username and password must not be null", slog.String("cluster", cc.Hostname))
 		return
 	}
-	password, err = secretFromEnv(cc.Password)
+	password, err = config.SecretFromEnv(cc.Password)
 	if err != nil {
 		log.Error("Unable to retrieve password from environment", slog.String("cluster", cc.Hostname), slog.String("error", err.Error()))
 		return
@@ -383,7 +390,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 	}
 	i := len(pq)
 	// add entries for summary stats
-	if config.SummaryStats.Protocol {
+	if conf.SummaryStats.Protocol {
 		item := Item{
 			value:    PqValue{StatTypeSummaryStatProtocol, nil},
 			priority: startTime,
@@ -392,7 +399,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 		pq = append(pq, &item)
 		i++
 	}
-	if config.SummaryStats.Client {
+	if conf.SummaryStats.Client {
 		item := Item{
 			value:    PqValue{StatTypeSummaryStatClient, nil},
 			priority: startTime,
@@ -401,7 +408,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 		pq = append(pq, &item)
 		i++
 	}
-	if config.SummaryStats.Drive {
+	if conf.SummaryStats.Drive {
 		item := Item{
 			value:    PqValue{StatTypeSummaryStatDrive, nil},
 			priority: startTime,
@@ -417,7 +424,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 		log.Error("failed to obtain backend", slog.String("backend", gc.Processor), slog.String("error", err.Error()))
 		return
 	}
-	err = ss.Init(ctx, c.ClusterName, config, ci, sd)
+	err = ss.Init(ctx, c.ClusterName, conf, ci, sd)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			log.Error("Unable to initialize backend", slog.String("backend", gc.Processor), slog.String("error", err.Error()))
@@ -435,7 +442,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 			select {
 			case <-time.After(nextTime.Sub(curTime)):
 			case <-ctx.Done():
-				log.Log(ctx, LevelNotice, "shutting down stats collection", slog.String("cluster", c.ClusterName))
+				log.Log(ctx, logging.LevelNotice, "shutting down stats collection", slog.String("cluster", c.ClusterName))
 				return
 			}
 		}
@@ -468,7 +475,7 @@ func statsloop(ctx context.Context, config *tomlConfig, ci int, sg map[string]st
 				select {
 				case <-time.After(retryTime):
 				case <-ctx.Done():
-					log.Log(ctx, LevelNotice, "shutting down stats collection", slog.String("cluster", c.ClusterName))
+					log.Log(ctx, logging.LevelNotice, "shutting down stats collection", slog.String("cluster", c.ClusterName))
 					return
 				}
 				if retryTime < maxRetryTime {

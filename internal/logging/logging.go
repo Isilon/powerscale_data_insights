@@ -1,4 +1,6 @@
-package main
+// Package logging provides structured logging setup with custom levels
+// extending the standard slog levels.
+package logging
 
 import (
 	"fmt"
@@ -21,15 +23,20 @@ const (
 	LevelFatal    = slog.Level(12)
 )
 
-// Default logger
-var log *slog.Logger
+// LoggingConfig holds the logging section of the TOML configuration.
+type LoggingConfig struct {
+	LogFile       *string `toml:"logfile"`
+	LogFileFormat *string `toml:"log_file_format"`
+	LogLevel      *string `toml:"log_level"`
+	LogToStdout   bool    `toml:"log_to_stdout"`
+}
 
 // ParseLevel converts a string to a slog.Level.
 // It handles standard levels and is case-insensitive.
 // If the string does not match a known level, it returns an error.
 func ParseLevel(levelStr string) (slog.Level, error) {
 	var level slog.Level
-	var err error = nil
+	var err error
 	switch strings.ToUpper(levelStr) {
 	case "TRACE":
 		level = LevelTrace
@@ -51,7 +58,7 @@ func ParseLevel(levelStr string) (slog.Level, error) {
 	return level, err
 }
 
-func loggingOptions(level slog.Level) *slog.HandlerOptions {
+func handlerOptions(level slog.Level) *slog.HandlerOptions {
 	return &slog.HandlerOptions{
 		Level:     level,
 		AddSource: true,
@@ -60,7 +67,15 @@ func loggingOptions(level slog.Level) *slog.HandlerOptions {
 			// custom level values.
 			if a.Key == slog.LevelKey {
 				// Handle custom level values.
-				level := a.Value.Any().(slog.Level)
+				level, ok := a.Value.Any().(slog.Level)
+				if !ok {
+					return a
+				}
+
+				// This could also look up the name from a map or other structure, but
+				// this demonstrates using a switch statement to rename levels. For
+				// maximum performance, the string values should be constants, but this
+				// example uses the raw strings for readability.
 				switch {
 				case level < LevelDebug:
 					a.Value = slog.StringValue("TRACE")
@@ -80,22 +95,26 @@ func loggingOptions(level slog.Level) *slog.HandlerOptions {
 					a.Value = slog.StringValue("FATAL")
 				}
 			}
+
 			return a
 		},
 	}
 }
 
-// setupEarlyLogging initializes early logging to stdout at INFO level
-// before the full logging configuration is available.
-func setupEarlyLogging() {
-	options := loggingOptions(LevelInfo)
+// SetupEarlyLogging initializes logging to stdout at INFO level before the
+// full logging configuration is available. Returns the logger.
+func SetupEarlyLogging() *slog.Logger {
+	options := handlerOptions(LevelInfo)
 	consoleHandler := slog.NewTextHandler(os.Stdout, options)
-	log = slog.New(consoleHandler)
+	logger := slog.New(consoleHandler)
+	slog.SetDefault(logger)
+	return logger
 }
 
-// setupLogging initializes the logging system based on the logging configuration
-// and any command-line overrides for the log level and log file name.
-func setupLogging(lc loggingConfig, logLevel string, logFileName string) {
+// Setup initializes the logging system based on the provided configuration
+// and optional command-line overrides. It returns the configured logger.
+// The progName parameter is used in error messages (e.g., "gostats" or "goppstats").
+func Setup(progName string, lc LoggingConfig, logLevel string, logFileName string) *slog.Logger {
 	// Determine log level
 	// If not set on command line, get from config file
 	// If not set in config file, default to NOTICE
@@ -108,14 +127,15 @@ func setupLogging(lc loggingConfig, logLevel string, logFileName string) {
 	}
 	level, err := ParseLevel(logLevel)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "goppstats: invalid log level '%s' - %s\n", logLevel, err)
+		fmt.Fprintf(os.Stderr, "%s: invalid log level '%s' - %s\n", progName, logLevel, err)
 		os.Exit(2)
 	}
 
 	// Up to two backends (one file, one stdout)
 	backends := make([]slog.Handler, 0, 2)
-	options := loggingOptions(level)
+	options := handlerOptions(level)
 
+	// Up to two backends (one file, one stdout)
 	// default is to not log to file
 	logfile := ""
 	// is it set in the config file?
@@ -129,7 +149,7 @@ func setupLogging(lc loggingConfig, logLevel string, logFileName string) {
 	if logfile != "" {
 		f, err := os.OpenFile(logfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "goppstats: unable to open log file %s for output - %s", logfile, err)
+			fmt.Fprintf(os.Stderr, "%s: unable to open log file %s for output - %s", progName, logfile, err)
 			os.Exit(2)
 		}
 		var fileHandler slog.Handler
@@ -143,7 +163,7 @@ func setupLogging(lc loggingConfig, logLevel string, logFileName string) {
 		case "text":
 			fileHandler = slog.NewTextHandler(f, options)
 		default:
-			fmt.Fprintf(os.Stderr, "goppstats: unknown log file format '%s'\n", format)
+			fmt.Fprintf(os.Stderr, "%s: unknown log file format '%s'\n", progName, format)
 			os.Exit(2)
 		}
 		backends = append(backends, fileHandler)
@@ -153,8 +173,10 @@ func setupLogging(lc loggingConfig, logLevel string, logFileName string) {
 		backends = append(backends, consoleHandler)
 	}
 	if len(backends) == 0 {
-		fmt.Fprintf(os.Stderr, "goppstats: no logging defined, unable to continue\nPlease configure logging in the config file and/or via the command line\n")
+		fmt.Fprintf(os.Stderr, "%s: no logging defined, unable to continue\nPlease configure logging in the config file and/or via the command line\n", progName)
 		os.Exit(3)
 	}
-	log = slog.New(slogmulti.Fanout(backends...))
+	logger := slog.New(slogmulti.Fanout(backends...))
+	slog.SetDefault(logger)
+	return logger
 }

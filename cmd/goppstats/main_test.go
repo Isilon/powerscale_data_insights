@@ -3,12 +3,14 @@ package main
 import (
 	"os"
 	"testing"
+
+	"github.com/isilon/powerscale_data_insights/internal/logging"
 )
 
 // TestMain initializes the global logger before any tests run.
 // Many functions in this package use the package-level log variable.
 func TestMain(m *testing.M) {
-	setupEarlyLogging()
+	log = logging.SetupEarlyLogging()
 	os.Exit(m.Run())
 }
 

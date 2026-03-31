@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/isilon/powerscale_data_insights/internal/logging"
 	mapset "github.com/deckarep/golang-set/v2"
 	"golang.org/x/net/publicsuffix"
 )
@@ -236,7 +237,7 @@ func (c *Cluster) GetSummaryDriveStats(ctx context.Context) ([]SummaryStatsDrive
 	}
 	// TODO - Need to handle JSON return of "errors" here (e.g. for re-auth
 	// when using session cookies)
-	log.Log(ctx, LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
+	log.Log(ctx, logging.LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
 	r, err := UnmarshalSummaryStatsDrive(resp)
 	if err != nil {
 		errmsg := fmt.Errorf("cluster %s unable to parse drive summary stats response %q - error %s", c, resp, err)
@@ -470,7 +471,7 @@ func (c *Cluster) GetSummaryProtocolStats(ctx context.Context) ([]SummaryStatsPr
 	}
 	// TODO - Need to handle JSON return of "errors" here (e.g. for re-auth
 	// when using session cookies)
-	log.Log(ctx, LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
+	log.Log(ctx, logging.LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
 	r, err := UnmarshalSummaryStatsProtocol(resp)
 	if err != nil {
 		errmsg := fmt.Errorf("cluster %s unable to parse protocol summary stats response %q - error %s", c, resp, err)
@@ -508,7 +509,7 @@ func (c *Cluster) GetSummaryClientStats(ctx context.Context) ([]SummaryStatsClie
 	}
 	// TODO - Need to handle JSON return of "errors" here (e.g. for re-auth
 	// when using session cookies)
-	log.Log(ctx, LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
+	log.Log(ctx, logging.LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
 	r, err := UnmarshalSummaryStatsClient(resp)
 	if err != nil {
 		errmsg := fmt.Errorf("cluster %s unable to parse client summary stats response %q - error %s", c, resp, err)
@@ -552,13 +553,13 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 				// TODO investigate handling partial errors rather than totally failing?
 				return nil, err
 			}
-			log.Log(ctx, LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
+			log.Log(ctx, logging.LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
 			r, err := parseStatResult(resp)
 			if err != nil {
 				log.Error("unable to parse response", slog.String("cluster", c.String()), slog.String("response", string(resp)), slog.String("error", err.Error()))
 				return nil, err
 			}
-			log.Log(ctx, LevelTrace, "parsed stats results", slog.String("cluster", c.String()), "results", r)
+			log.Log(ctx, logging.LevelTrace, "parsed stats results", slog.String("cluster", c.String()), "results", r)
 			results = append(results, r...)
 			buffer.Reset()
 			buffer.WriteString(basePath)
@@ -579,13 +580,13 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 	}
 	// TODO - Need to handle JSON return of "errors" here (e.g. for re-auth
 	// when using session cookies)
-	log.Log(ctx, LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
+	log.Log(ctx, logging.LevelTrace, "got response", slog.String("cluster", c.String()), "response", resp)
 	r, err := parseStatResult(resp)
 	if err != nil {
 		log.Error("unable to parse response", slog.String("cluster", c.String()), slog.String("response", string(resp)), slog.String("error", err.Error()))
 		return nil, err
 	}
-	log.Log(ctx, LevelTrace, "parsed stats results", slog.String("cluster", c.String()), "results", r)
+	log.Log(ctx, logging.LevelTrace, "parsed stats results", slog.String("cluster", c.String()), "results", r)
 	results = append(results, r...)
 
 	return results, nil
@@ -794,7 +795,7 @@ func (c *Cluster) restGet(ctx context.Context, endpoint string) ([]byte, error) 
 				if c.AuthType == authtypeBasic {
 					return nil, fmt.Errorf("basic authentication for cluster %s failed - check username and password", c)
 				}
-				log.Log(ctx, LevelNotice, "Session-based authentication failed, attempting to re-authenticate", slog.String("cluster", c.String()))
+				log.Log(ctx, logging.LevelNotice, "Session-based authentication failed, attempting to re-authenticate", slog.String("cluster", c.String()))
 				if err = c.Authenticate(ctx); err != nil {
 					return nil, err
 				}

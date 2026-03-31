@@ -10,6 +10,9 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
+
+	"github.com/isilon/powerscale_data_insights/internal/config"
+	"github.com/isilon/powerscale_data_insights/internal/logging"
 )
 
 // InfluxDBv2Sink defines the data to allow us talk to an InfluxDBv2 database
@@ -27,18 +30,18 @@ func GetInfluxDBv2Writer() DBWriter {
 }
 
 // Init initializes an InfluxDBSink so that points can be written
-func (s *InfluxDBv2Sink) Init(ctx context.Context, cluster *Cluster, config *tomlConfig, ci int) error {
+func (s *InfluxDBv2Sink) Init(ctx context.Context, cluster *Cluster, cfg *tomlConfig, ci int) error {
 	s.clusterName = cluster.ClusterName
 	s.cluster = cluster
 	var err error
-	ic := config.InfluxDBv2
+	ic := cfg.InfluxDBv2
 	url := "http://" + ic.Host + ":" + ic.Port
 
 	token := ic.Token
 	if token == "" {
 		return fmt.Errorf("InfluxDBv2 access token is missing or empty")
 	}
-	token, err = secretFromEnv(token)
+	token, err = config.SecretFromEnv(token)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve InfluxDBv2 token from environment: %w", err)
 	}
@@ -53,11 +56,11 @@ func (s *InfluxDBv2Sink) Init(ctx context.Context, cluster *Cluster, config *tom
 	if !ok {
 		return fmt.Errorf("InfluxDBv2 ping failed - server not reachable")
 	}
-	log.Log(ctx, LevelNotice, "successfully connected to InfluxDBv2", slog.String("cluster", cluster.ClusterName))
+	log.Log(ctx, logging.LevelNotice, "successfully connected to InfluxDBv2", slog.String("cluster", cluster.ClusterName))
 	s.c = client
 	s.writeAPI = client.WriteAPIBlocking(ic.Org, ic.Bucket)
 
-	s.exports = newExportMap(config.Global.LookupExportIDs)
+	s.exports = newExportMap(cfg.Global.LookupExportIDs)
 	return nil
 }
 

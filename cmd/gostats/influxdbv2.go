@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	cfglib "github.com/isilon/powerscale_data_insights/internal/config"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
@@ -39,7 +40,7 @@ func (s *InfluxDBv2Sink) Init(ctx context.Context, cluster string, config *tomlC
 	if token == "" {
 		return fmt.Errorf("InfluxDBv2 access token is missing or empty")
 	}
-	token, err = secretFromEnv(token)
+	token, err = cfglib.SecretFromEnv(token)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve InfluxDBv2 token from environment: %w", err)
 	}

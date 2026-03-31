@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	cfglib "github.com/isilon/powerscale_data_insights/internal/config"
 	client "github.com/influxdata/influxdb1-client/v2"
 )
 
@@ -41,7 +42,7 @@ func (s *InfluxDBSink) Init(_ context.Context, cluster string, config *tomlConfi
 	if ic.Authenticated {
 		username = ic.Username
 		password = ic.Password
-		password, err = secretFromEnv(password)
+		password, err = cfglib.SecretFromEnv(password)
 		if err != nil {
 			return fmt.Errorf("unable to retrieve InfluxDB password from environment: %w", err)
 		}

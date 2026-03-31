@@ -8,6 +8,9 @@ import (
 	"time"
 
 	client "github.com/influxdata/influxdb1-client/v2"
+
+	"github.com/isilon/powerscale_data_insights/internal/config"
+	"github.com/isilon/powerscale_data_insights/internal/logging"
 )
 
 // InfluxDBSink defines the data to allow us talk to an InfluxDB database
@@ -25,12 +28,12 @@ func GetInfluxDBWriter() DBWriter {
 }
 
 // Init initializes an InfluxDBSink so that points can be written
-func (s *InfluxDBSink) Init(ctx context.Context, cluster *Cluster, config *tomlConfig, ci int) error {
+func (s *InfluxDBSink) Init(ctx context.Context, cluster *Cluster, cfg *tomlConfig, ci int) error {
 	s.clusterName = cluster.ClusterName
 	s.cluster = cluster
 	var username, password string
 	var err error
-	ic := config.InfluxDB
+	ic := cfg.InfluxDB
 	url := "http://" + ic.Host + ":" + ic.Port
 
 	s.bpConfig = client.BatchPointsConfig{
@@ -41,7 +44,7 @@ func (s *InfluxDBSink) Init(ctx context.Context, cluster *Cluster, config *tomlC
 	if ic.Authenticated {
 		username = ic.Username
 		password = ic.Password
-		password, err = secretFromEnv(password)
+		password, err = config.SecretFromEnv(password)
 		if err != nil {
 			return fmt.Errorf("unable to retrieve InfluxDB password from environment: %w", err)
 		}
@@ -60,11 +63,11 @@ func (s *InfluxDBSink) Init(ctx context.Context, cluster *Cluster, config *tomlC
 	if err != nil {
 		return fmt.Errorf("failed to ping InfluxDB: %w", err)
 	}
-	log.Log(ctx, LevelNotice, "successfully connected to InfluxDB",
+	log.Log(ctx, logging.LevelNotice, "successfully connected to InfluxDB",
 		slog.String("response", response),
 		slog.Duration("response_time", responseTime))
 	s.client = dbClient
-	s.exports = newExportMap(config.Global.LookupExportIDs)
+	s.exports = newExportMap(cfg.Global.LookupExportIDs)
 	return nil
 }
 

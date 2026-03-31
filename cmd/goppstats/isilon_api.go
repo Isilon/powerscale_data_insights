@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"golang.org/x/net/publicsuffix"
+
+	"github.com/isilon/powerscale_data_insights/internal/logging"
 )
 
 // MaxAPIPathLen is the limit on the length of an API request URL
@@ -460,7 +462,7 @@ func (c *Cluster) restGet(ctx context.Context, endpoint string) ([]byte, error) 
 				if c.AuthType == authtypeBasic {
 					return nil, fmt.Errorf("basic authentication for cluster %s failed - check username and password", c)
 				}
-				log.Log(ctx, LevelNotice, "Session-based authentication to cluster failed, attempting to re-authenticate", slog.String("cluster", c.String()))
+				log.Log(ctx, logging.LevelNotice, "Session-based authentication to cluster failed, attempting to re-authenticate", slog.String("cluster", c.String()))
 				if err = c.Authenticate(ctx); err != nil {
 					return nil, err
 				}

@@ -17,6 +17,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/isilon/powerscale_data_insights/internal/platform"
 )
 
 // promDsMap maps the dataset id (int) to the Prometheus-specific dataset information
@@ -95,7 +97,7 @@ type MetricFamily struct {
 func createListener(ctx context.Context, addr string) (net.Listener, error) {
 	// Create Listener Config
 	lc := net.ListenConfig{
-		Control: Control,
+		Control: platform.Control,
 	}
 
 	// Start Listener
@@ -205,7 +207,7 @@ func startPromSdListener(ctx context.Context, conf tomlConfig) error {
 	var err error
 	listenAddr = conf.PromSD.ListenAddr
 	if listenAddr == "" {
-		listenAddr, err = findExternalAddr()
+		listenAddr, err = platform.FindExternalAddr()
 		if err != nil {
 			return err
 		}
