@@ -27,6 +27,8 @@ Thumbs.db
 # Config files (may contain credentials)
 idic.toml
 goppstats.toml
+docker/gostats.toml
+docker/goppstats.toml
 
 # Test output
 test-dash.json
