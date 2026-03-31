@@ -231,16 +231,23 @@ packages. Eliminate copy-paste maintenance burden.
 
 ### Phase 3: Dashboard Modernization
 
-**Goal:** Rewrite all dashboards to Grafana v2beta1 schema with InfluxQL
-queries. Incorporate interim dashboards from existing work.
+**Goal:** Rewrite all dashboards using the Grafana legacy JSON format with
+modern panel types and InfluxQL queries. Update dashgen to produce the
+same format. Incorporate interim dashboards from existing work.
 
-**Can proceed in parallel with Phase 2** (dashboards are JSON, independent
-of Go refactoring).
+**Dashboard format decision:** Use the **Grafana legacy format** (flat JSON
+with `schemaVersion`, `panels[]` array, `templating.list[]`) rather than
+the Grafana 12 v2beta1 Kubernetes-style format. Rationale:
+- Universal compatibility (Grafana 10, 11, 12+)
+- Stable, battle-tested, actively maintained with auto-migration
+- v2beta1 is explicitly experimental and may change
+- Ecosystem tooling (Grafonnet, provisioning, marketplace) assumes legacy
 
 #### Static Dashboards (rewrite from old connector format)
 
 All dashboards use:
-- Grafana v2beta1 JSON schema (`apiVersion: dashboard.grafana.app/v2beta1`)
+- Grafana legacy JSON format with current schemaVersion
+- Modern panel types (timeseries instead of graph, stat instead of singlestat)
 - Template variables: datasource picker, cluster selector
 - InfluxQL queries (compatible with InfluxDB v1 and v2)
 - Tags: `["powerscale", "gostats"]`
@@ -277,16 +284,19 @@ All dashboards use:
 #### Interim Dashboards (incorporate from existing work)
 
 5-8. **Drive statistics and others** (3-5 dashboards)
-   - To be provided; modernize to v2beta1 if needed or include directly
+   - To be provided; modernize if needed or include directly
    - Likely cover: drive I/O, drive latency, summary stats views
 
 #### dashgen Updates
 
-9. Remove the InfluxDB v2/Flux stub restriction (InfluxQL works for both)
-10. Update Grafana schema if needed to match static dashboard conventions
+9. **Rewrite dashgen output to use Grafana legacy format** — replace the
+   v2beta1 Kubernetes-style output with standard Grafana JSON (panels array,
+   gridPos layout, templating.list variables). This aligns dashgen output
+   with the static dashboards and ensures compatibility with Grafana 10+.
+10. Remove the InfluxDB v2/Flux stub restriction (InfluxQL works for both)
 11. Ensure consistent variable naming and tag conventions with static dashboards
 
-**Exit criteria:** All dashboards importable into Grafana 12.x, rendering
+**Exit criteria:** All dashboards importable into Grafana 10+, rendering
 correctly against InfluxDB with gostats/goppstats data.
 
 ---
