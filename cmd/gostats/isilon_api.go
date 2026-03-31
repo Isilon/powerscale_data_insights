@@ -3,52 +3,30 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
-	"net/http/cookiejar"
-	"net/url"
-	"strconv"
-	"strings"
-	"syscall"
-	"time"
 
+	"github.com/isilon/powerscale_data_insights/internal/api"
 	"github.com/isilon/powerscale_data_insights/internal/logging"
 	mapset "github.com/deckarep/golang-set/v2"
-	"golang.org/x/net/publicsuffix"
 )
 
-// MaxAPIPathLen is the limit on the length of an API request URL
-const MaxAPIPathLen = 8198
-
-// AuthInfo provides username and password to authenticate
-// against the OneFS API
-type AuthInfo struct {
-	Username string
-	Password string
+// Cluster embeds the shared api.Cluster and adds gostats-specific state.
+type Cluster struct {
+	*api.Cluster
+	badStats mapset.Set[string]
 }
 
-// Cluster contains all of the information to talk to a OneFS
-// cluster via the OneFS API
-type Cluster struct {
-	AuthInfo
-	AuthType     string
-	Hostname     string
-	Port         int
-	VerifySSL    bool
-	OSVersion    string
-	ClusterName  string
-	baseURL      string
-	client       *http.Client
-	csrfToken    string
-	reauthTime   time.Time
-	maxRetries   int
-	PreserveCase bool
-	badStats     mapset.Set[string]
+// Connect delegates to the embedded api.Cluster.Connect and then initialises
+// the gostats-specific badStats set.
+func (c *Cluster) Connect(ctx context.Context) error {
+	if err := c.Cluster.Connect(ctx); err != nil {
+		return err
+	}
+	c.badStats = mapset.NewSet[string]()
+	return nil
 }
 
 // StatResult contains the information returned for a single stat key
@@ -79,9 +57,7 @@ type statDetail struct {
 	updateIntvl float64
 }
 
-// API endpoint paths
-const sessionPath = "/session/1/session"
-const configPath = "/platform/1/cluster/config"
+// API endpoint paths (gostats-specific)
 const statsPath = "/platform/1/statistics/current"
 const statInfoPath = "/platform/1/statistics/keys/"
 const summaryStatsPath = "/platform/3/statistics/summary/"
@@ -103,8 +79,6 @@ const (
 	StatErrorNotConfigured
 	StatErrorNoData
 )
-
-const maxTimeoutSecs = 1800 // clamp retry timeout to 30 minutes
 
 // SummaryStatsProtocol stores the return from the /3/statistics/summary/statistics endpoint
 // which returns an array of protocol summary stats or an array of errors
@@ -227,7 +201,7 @@ func UnmarshalSummaryStatsDrive(data []byte) (SummaryStatsDrive, error) {
 func (c *Cluster) GetSummaryDriveStats(ctx context.Context) ([]SummaryStatsDriveItem, error) {
 	path := summaryStatsPath + "drive?degraded=true"
 	log.Info("fetching drive summary stats", slog.String("cluster", c.String()))
-	resp, err := c.restGet(ctx, path)
+	resp, err := c.RestGet(ctx, path)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			log.Error("failed to get drive summary stats", slog.String("cluster", c.String()), slog.String("error", err.Error()))
@@ -254,202 +228,6 @@ func (c *Cluster) GetSummaryDriveStats(ctx context.Context) ([]SummaryStatsDrive
 	return r.Drive, nil
 }
 
-// initialize handles setting up the API client
-func (c *Cluster) initialize() error {
-	// already initialized?
-	if c.client != nil {
-		log.Warn("initialize called for cluster when it was already initialized, skipping", slog.String("cluster", c.Hostname))
-		return nil
-	}
-	if c.Username == "" {
-		return fmt.Errorf("username must be set")
-	}
-	if c.Password == "" {
-		return fmt.Errorf("password must be set")
-	}
-	if c.Hostname == "" {
-		return fmt.Errorf("hostname must be set")
-	}
-	if c.Port == 0 {
-		c.Port = 8080
-	}
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return err
-	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: !c.VerifySSL},
-	}
-	c.client = &http.Client{
-		Transport: tr,
-		Jar:       jar,
-	}
-	c.baseURL = "https://" + c.Hostname + ":" + strconv.Itoa(c.Port)
-	c.badStats = mapset.NewSet[string]()
-	return nil
-}
-
-// String returns the string representation of Cluster as the cluster name
-func (c *Cluster) String() string {
-	return c.ClusterName
-}
-
-// Authenticate authenticates to the cluster using the session API endpoint
-// and saves the cookies needed to authenticate subsequent requests
-func (c *Cluster) Authenticate(ctx context.Context) error {
-	var err error
-	var resp *http.Response
-
-	am := struct {
-		Username string   `json:"username"`
-		Password string   `json:"password"`
-		Services []string `json:"services"`
-	}{
-		Username: c.Username,
-		Password: c.Password,
-		Services: []string{"platform"},
-	}
-	b, err := json.Marshal(am)
-	if err != nil {
-		return err
-	}
-	u, err := url.Parse(c.baseURL + sessionPath)
-	if err != nil {
-		return err
-	}
-	// POST our authentication request to the API
-	// This may be our first connection so we'll retry here in the hope that if
-	// we can't connect to one node, another may be responsive
-	retrySecs := 1
-	for i := 1; i <= c.maxRetries; i++ {
-		var req *http.Request
-		req, err = http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewBuffer(b))
-		if err != nil {
-			return err
-		}
-		req.Header.Set("User-Agent", userAgent)
-		req.Header.Set("Content-Type", "application/json")
-		resp, err = c.client.Do(req)
-		if err == nil {
-			break
-		}
-		log.Warn("Authentication request failed", slog.String("error", err.Error()), slog.Int("retry_secs", retrySecs))
-		select {
-		case <-time.After(time.Duration(retrySecs) * time.Second):
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-		retrySecs *= 2
-		if retrySecs > maxTimeoutSecs {
-			retrySecs = maxTimeoutSecs
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("max retries exceeded for connect to %s, aborting connection attempt", c.Hostname)
-	}
-	// No point in checking the return here - there's nothing we can do if it does return an errr
-	defer resp.Body.Close() //nolint:errcheck
-	// 201(StatusCreated) is success
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("auth failed: %s", resp.Status)
-	}
-	// parse out time limit so we can reauth when necessary
-	dec := json.NewDecoder(resp.Body)
-	var ar map[string]any
-	err = dec.Decode(&ar)
-	if err != nil {
-		return fmt.Errorf("unable to parse auth response: %s", err)
-	}
-	// drain any other output
-	_, _ = io.Copy(io.Discard, resp.Body)
-	var timeout int
-	ta, ok := ar["timeout_absolute"]
-	if ok {
-		if taF, ok := ta.(float64); ok {
-			timeout = int(taF)
-		} else {
-			log.Warn("authentication API returned unexpected type for timeout value, using default")
-			timeout = 14400
-		}
-	} else {
-		// This shouldn't happen, but just set it to a sane default
-		log.Warn("authentication API did not return timeout value, using default")
-		timeout = 14400
-	}
-	if timeout > 60 {
-		timeout -= 60 // Give a minute's grace to the reauth timer
-	}
-	c.reauthTime = time.Now().Add(time.Duration(timeout) * time.Second)
-
-	c.csrfToken = ""
-	// Dig out CSRF token so we can set the appropriate header
-	for _, cookie := range c.client.Jar.Cookies(u) {
-		if cookie.Name == "isicsrf" {
-			log.Debug("Found csrf cookie", "cookie", cookie)
-			c.csrfToken = cookie.Value
-		}
-	}
-	if c.csrfToken == "" {
-		log.Debug("No CSRF token found, assuming old-style session auth", slog.String("cluster", c.Hostname))
-	}
-
-	return nil
-}
-
-// GetClusterConfig pulls information from the cluster config API
-// endpoint, including the actual cluster name
-func (c *Cluster) GetClusterConfig(ctx context.Context) error {
-	var v any
-	resp, err := c.restGet(ctx, configPath)
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(resp, &v)
-	if err != nil {
-		return err
-	}
-	m, ok := v.(map[string]any)
-	if !ok {
-		return fmt.Errorf("unexpected JSON structure for cluster config")
-	}
-	version, ok := m["onefs_version"].(map[string]any)
-	if !ok {
-		return fmt.Errorf("unexpected type for onefs_version field")
-	}
-	rel, ok := version["version"].(string)
-	if !ok {
-		return fmt.Errorf("unexpected type for version field")
-	}
-	c.OSVersion = rel
-	name, ok := m["name"].(string)
-	if !ok {
-		return fmt.Errorf("unexpected type for name field")
-	}
-	if c.PreserveCase {
-		c.ClusterName = name
-	} else {
-		c.ClusterName = strings.ToLower(name)
-	}
-	return nil
-}
-
-// Connect establishes the initial network connection to the cluster,
-// then pulls the cluster config info to get the real cluster name
-func (c *Cluster) Connect(ctx context.Context) error {
-	if err := c.initialize(); err != nil {
-		return fmt.Errorf("initialize: %w", err)
-	}
-	if c.AuthType == authtypeSession {
-		if err := c.Authenticate(ctx); err != nil {
-			return fmt.Errorf("authenticate: %w", err)
-		}
-	}
-	if err := c.GetClusterConfig(ctx); err != nil {
-		return fmt.Errorf("get cluster config: %w", err)
-	}
-	return nil
-}
-
 // UnmarshalSummaryStatsProtocol unmarshals the JSON return from the summary stats protocol endpoint
 func UnmarshalSummaryStatsProtocol(data []byte) (SummaryStatsProtocol, error) {
 	var r SummaryStatsProtocol
@@ -461,7 +239,7 @@ func UnmarshalSummaryStatsProtocol(data []byte) (SummaryStatsProtocol, error) {
 func (c *Cluster) GetSummaryProtocolStats(ctx context.Context) ([]SummaryStatsProtocolItem, error) {
 	path := summaryStatsPath + "protocol?degraded=true"
 	log.Info("fetching protocol summary stats", slog.String("cluster", c.String()))
-	resp, err := c.restGet(ctx, path)
+	resp, err := c.RestGet(ctx, path)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			log.Error("failed to get protocol summary stats", slog.String("cluster", c.String()), slog.String("error", err.Error()))
@@ -499,7 +277,7 @@ func UnmarshalSummaryStatsClient(data []byte) (SummaryStatsClient, error) {
 func (c *Cluster) GetSummaryClientStats(ctx context.Context) ([]SummaryStatsClientItem, error) {
 	path := summaryStatsPath + "client?degraded=true"
 	log.Info("fetching client summary stats", slog.String("cluster", c.String()))
-	resp, err := c.restGet(ctx, path)
+	resp, err := c.RestGet(ctx, path)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			log.Error("failed to get client summary stats", slog.String("cluster", c.String()), slog.String("error", err.Error()))
@@ -534,7 +312,7 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 	basePath := statsPath + "?degraded=true&devid=all&show_nodes=true"
 	log.Info("fetching stats", slog.String("cluster", c.String()), slog.Int("count", len(stats)))
 	// max space available for &key=... args (subtract basePath length and some slop)
-	maxKeyLen := MaxAPIPathLen - (len(basePath) + 100)
+	maxKeyLen := api.MaxAPIPathLen - (len(basePath) + 100)
 
 	var buffer bytes.Buffer
 	buffer.WriteString(basePath)
@@ -545,7 +323,7 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 		if keyLen > 0 && keyLen+len(keyArg) > maxKeyLen {
 			// Current batch is full; send it before adding the next stat
 			log.Debug("sending request", slog.String("cluster", c.String()), slog.String("request", buffer.String()))
-			resp, err := c.restGet(ctx, buffer.String())
+			resp, err := c.RestGet(ctx, buffer.String())
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					log.Error("failed to get stats", slog.String("cluster", c.String()), slog.String("error", err.Error()))
@@ -571,7 +349,7 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 
 	// Send the final (or only) batch
 	log.Debug("sending request", slog.String("cluster", c.String()), slog.String("request", buffer.String()))
-	resp, err := c.restGet(ctx, buffer.String())
+	resp, err := c.RestGet(ctx, buffer.String())
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			log.Error("failed to get stats", slog.String("cluster", c.String()), slog.String("error", err.Error()))
@@ -626,7 +404,7 @@ func (c *Cluster) fetchStatDetails(ctx context.Context, sg map[string]statGroup)
 		stats := sg[group].stats
 		for _, stat := range stats {
 			path := statInfoPath + stat
-			resp, err := c.restGet(ctx, path)
+			resp, err := c.RestGet(ctx, path)
 			if err != nil {
 				if !errors.Is(err, context.Canceled) {
 					log.Warn("failed to retrieve information for stat - removing", slog.String("cluster", c.String()), slog.String("stat", stat), slog.String("error", err.Error()))
@@ -752,104 +530,4 @@ func parseStatInfo(res []byte) (*statDetail, error) {
 
 	detail.valid = true
 	return &detail, nil
-}
-
-// isConnectionRefused checks if the given error is a connection refused error
-func isConnectionRefused(err error) bool {
-	return errors.Is(err, syscall.ECONNREFUSED)
-}
-
-// restGet returns the REST response for the given endpoint from the API
-func (c *Cluster) restGet(ctx context.Context, endpoint string) ([]byte, error) {
-	var err error
-	var resp *http.Response
-
-	if c.AuthType == authtypeSession && time.Now().After(c.reauthTime) {
-		log.Info("re-authenticating to cluster based on timer", slog.String("cluster", c.String()))
-		if err = c.Authenticate(ctx); err != nil {
-			return nil, err
-		}
-	}
-
-	u, err := url.Parse(c.baseURL + endpoint)
-	if err != nil {
-		return nil, err
-	}
-	req, err := c.newGetRequest(ctx, u.String())
-	if err != nil {
-		return nil, err
-	}
-
-	retrySecs := 1
-	for i := 1; i <= c.maxRetries; i++ {
-		resp, err = c.client.Do(req)
-		if err == nil {
-			// We got a valid http response
-			if resp.StatusCode == http.StatusOK {
-				break
-			}
-			// We got an error
-			_ = resp.Body.Close()
-			// check for need to re-authenticate (maybe we are talking to a different node)
-			if resp.StatusCode == http.StatusUnauthorized {
-				if c.AuthType == authtypeBasic {
-					return nil, fmt.Errorf("basic authentication for cluster %s failed - check username and password", c)
-				}
-				log.Log(ctx, logging.LevelNotice, "Session-based authentication failed, attempting to re-authenticate", slog.String("cluster", c.String()))
-				if err = c.Authenticate(ctx); err != nil {
-					return nil, err
-				}
-				req, err = c.newGetRequest(ctx, u.String())
-				if err != nil {
-					return nil, err
-				}
-				continue
-			}
-			return nil, fmt.Errorf("cluster %s returned unexpected HTTP response: %v", c, resp.Status)
-		}
-		// assert err != nil
-		// TODO - consider adding more retryable cases e.g. temporary DNS hiccup
-		if !isConnectionRefused(err) {
-			return nil, err
-		}
-		log.Error("Connection to refused, retrying", slog.String("cluster", c.String()), slog.String("hostname", c.Hostname), slog.Int("retry_secs", retrySecs))
-		select {
-		case <-time.After(time.Duration(retrySecs) * time.Second):
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-		retrySecs *= 2
-		if retrySecs > maxTimeoutSecs {
-			retrySecs = maxTimeoutSecs
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close() //nolint:errcheck
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("cluster %s returned unexpected HTTP response: %v", c, resp.Status)
-	}
-	body, err := io.ReadAll(resp.Body)
-	return body, err
-}
-
-// newGetRequest creates a new HTTP GET request with the appropriate headers
-// and authentication information
-func (c *Cluster) newGetRequest(ctx context.Context, url string) (*http.Request, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Content-Type", "application/json")
-	if c.AuthType == authtypeBasic {
-		req.SetBasicAuth(c.Username, c.Password)
-	}
-	if c.csrfToken != "" {
-		// Must be newer session-based auth with CSRF protection
-		req.Header.Set("X-CSRF-Token", c.csrfToken)
-		req.Header.Set("Referer", c.baseURL)
-	}
-	return req, nil
 }

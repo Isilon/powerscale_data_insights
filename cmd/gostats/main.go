@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/isilon/powerscale_data_insights/internal/api"
 	"github.com/isilon/powerscale_data_insights/internal/config"
 	"github.com/isilon/powerscale_data_insights/internal/logging"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
@@ -23,12 +24,6 @@ import (
 // Version is the released program version
 const Version = "0.39"
 const userAgent = "gostats/" + Version
-
-const (
-	authtypeBasic   = "basic-auth"
-	authtypeSession = "session"
-)
-const defaultAuthType = authtypeSession
 
 // Config file plugin names
 const (
@@ -330,12 +325,12 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 	// Connect to the cluster
 	authtype := cc.AuthType
 	if authtype == "" {
-		log.Info("No authentication type defined, using default", slog.String("default", authtypeSession), slog.String("cluster", cc.Hostname))
-		authtype = defaultAuthType
+		log.Info("No authentication type defined, using default", slog.String("default", api.AuthTypeSession), slog.String("cluster", cc.Hostname))
+		authtype = api.DefaultAuthType
 	}
-	if authtype != authtypeSession && authtype != authtypeBasic {
-		log.Warn("Invalid authentication type, using default", slog.String("authtype", authtype), slog.String("default", authtypeSession), slog.String("cluster", cc.Hostname))
-		authtype = defaultAuthType
+	if authtype != api.AuthTypeSession && authtype != api.AuthTypeBasic {
+		log.Warn("Invalid authentication type, using default", slog.String("authtype", authtype), slog.String("default", api.AuthTypeSession), slog.String("cluster", cc.Hostname))
+		authtype = api.DefaultAuthType
 	}
 	if cc.Username == "" || cc.Password == "" {
 		log.Error("Username and password must not be null", slog.String("cluster", cc.Hostname))
@@ -347,16 +342,19 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 		return
 	}
 	c := &Cluster{
-		AuthInfo: AuthInfo{
-			Username: cc.Username,
-			Password: password,
+		Cluster: &api.Cluster{
+			AuthInfo: api.AuthInfo{
+				Username: cc.Username,
+				Password: password,
+			},
+			AuthType:     authtype,
+			Hostname:     cc.Hostname,
+			Port:         8080,
+			VerifySSL:    cc.SSLCheck,
+			UserAgent:    userAgent,
+			MaxRetries:   gc.MaxRetries,
+			PreserveCase: preserveCase,
 		},
-		AuthType:     authtype,
-		Hostname:     cc.Hostname,
-		Port:         8080,
-		VerifySSL:    cc.SSLCheck,
-		maxRetries:   gc.MaxRetries,
-		PreserveCase: preserveCase,
 	}
 	if err = c.Connect(ctx); err != nil {
 		if !errors.Is(err, context.Canceled) {
@@ -467,7 +465,7 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 				if !errors.Is(err, context.Canceled) {
 					log.Error("Failed to retrieve stats", slog.String("cluster", c.ClusterName), slog.String("error", err.Error()),
 						slog.Int("retry count", readFailCount), slog.Duration("retry time", retryTime))
-					if readFailCount >= c.maxRetries {
+					if readFailCount >= c.MaxRetries {
 						log.Warn("cluster may be down or unreachable", slog.String("cluster", c.ClusterName),
 							slog.Int("retry count", readFailCount))
 					}

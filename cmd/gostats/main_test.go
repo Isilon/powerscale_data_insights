@@ -4,11 +4,13 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/isilon/powerscale_data_insights/internal/api"
 )
 
 // testCluster returns a minimal Cluster sufficient for calcBuckets (only ClusterName is used).
 func testCluster(name string) *Cluster {
-	return &Cluster{ClusterName: name}
+	return &Cluster{Cluster: &api.Cluster{ClusterName: name}}
 }
 
 // statNames extracts and sorts the stat names from a slice of statTimeSets

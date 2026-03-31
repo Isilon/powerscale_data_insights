@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/isilon/powerscale_data_insights/internal/api"
 	"github.com/isilon/powerscale_data_insights/internal/config"
 	"github.com/isilon/powerscale_data_insights/internal/logging"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
@@ -23,12 +24,6 @@ const userAgent = "goppstats/" + Version
 
 // PPSampleRate is the poll interval in seconds; PP stats are only updated once every thirty seconds.
 const PPSampleRate = 30
-
-const (
-	authtypeBasic   = "basic-auth"
-	authtypeSession = "session"
-)
-const defaultAuthType = authtypeSession
 
 // Config file plugin names
 const (
@@ -206,15 +201,15 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int) {
 	if authtype == "" {
 		log.Info("No authentication type defined for cluster, defaulting",
 			slog.String("cluster", cc.Hostname),
-			slog.String("default", authtypeSession))
-		authtype = defaultAuthType
+			slog.String("default", api.AuthTypeSession))
+		authtype = api.DefaultAuthType
 	}
-	if authtype != authtypeSession && authtype != authtypeBasic {
+	if authtype != api.AuthTypeSession && authtype != api.AuthTypeBasic {
 		log.Warn("Invalid authentication type for cluster, using default",
 			slog.String("auth_type", authtype),
 			slog.String("cluster", cc.Hostname),
-			slog.String("default", authtypeSession))
-		authtype = defaultAuthType
+			slog.String("default", api.AuthTypeSession))
+		authtype = api.DefaultAuthType
 	}
 	if cc.Username == "" || cc.Password == "" {
 		log.Error("Username and password for cluster must not be null", slog.String("cluster", cc.Hostname))
@@ -228,16 +223,19 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int) {
 		return
 	}
 	c := &Cluster{
-		AuthInfo: AuthInfo{
-			Username: cc.Username,
-			Password: password,
+		Cluster: api.Cluster{
+			AuthInfo: api.AuthInfo{
+				Username: cc.Username,
+				Password: password,
+			},
+			AuthType:     authtype,
+			Hostname:     cc.Hostname,
+			Port:         8080,
+			VerifySSL:    cc.SSLCheck,
+			MaxRetries:   gc.MaxRetries,
+			PreserveCase: preserveCase,
+			UserAgent:    userAgent,
 		},
-		AuthType:     authtype,
-		Hostname:     cc.Hostname,
-		Port:         8080,
-		VerifySSL:    cc.SSLCheck,
-		maxRetries:   gc.MaxRetries,
-		PreserveCase: preserveCase,
 	}
 	if err = c.Connect(ctx); err != nil {
 		if !errors.Is(err, context.Canceled) {
