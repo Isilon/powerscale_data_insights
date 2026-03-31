@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/isilon/powerscale_data_insights/internal/api"
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 	"github.com/isilon/powerscale_data_insights/internal/config"
 	"github.com/isilon/powerscale_data_insights/internal/logging"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
@@ -503,14 +504,14 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 				}
 			} else {
 				name := summaryStatsBasename + "protocol"
-				points := make([]Point, len(ssp))
+				points := make([]backend.Point, len(ssp))
 				for i, stat := range ssp {
-					var fa []ptFields
-					var ta []ptTags
+					var fa []backend.Fields
+					var ta []backend.Tags
 					fields, tags := decodeProtocolSummaryStat(c.ClusterName, stat)
 					fa = append(fa, fields)
 					ta = append(ta, tags)
-					points[i] = Point{name: name, time: stat.Time, fields: fa, tags: ta}
+					points[i] = backend.Point{Name: name, Time: stat.Time, Fields: fa, Tags: ta}
 				}
 				log.Debug("start writing protocol summary stats to back end", slog.String("cluster", c.ClusterName))
 				err = ss.WritePoints(ctx, points)
@@ -532,14 +533,14 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 				}
 			} else {
 				name := summaryStatsBasename + "client"
-				points := make([]Point, len(ssc))
+				points := make([]backend.Point, len(ssc))
 				for i, stat := range ssc {
-					var fa []ptFields
-					var ta []ptTags
+					var fa []backend.Fields
+					var ta []backend.Tags
 					fields, tags := decodeClientSummaryStat(c.ClusterName, stat)
 					fa = append(fa, fields)
 					ta = append(ta, tags)
-					points[i] = Point{name: name, time: stat.Time, fields: fa, tags: ta}
+					points[i] = backend.Point{Name: name, Time: stat.Time, Fields: fa, Tags: ta}
 				}
 				log.Debug("start writing client summary stats to back end", slog.String("cluster", c.ClusterName))
 				err = ss.WritePoints(ctx, points)
@@ -561,14 +562,14 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 				}
 			} else {
 				name := summaryStatsBasename + "drive"
-				points := make([]Point, len(ssd))
+				points := make([]backend.Point, len(ssd))
 				for i, stat := range ssd {
-					var fa []ptFields
-					var ta []ptTags
+					var fa []backend.Fields
+					var ta []backend.Tags
 					fields, tags := decodeDriveSummaryStat(c.ClusterName, stat)
 					fa = append(fa, fields)
 					ta = append(ta, tags)
-					points[i] = Point{name: name, time: stat.Time, fields: fa, tags: ta}
+					points[i] = backend.Point{Name: name, Time: stat.Time, Fields: fa, Tags: ta}
 				}
 				log.Debug("start writing drive summary stats to back end", slog.String("cluster", c.ClusterName))
 				err = ss.WritePoints(ctx, points)
@@ -667,16 +668,60 @@ func calcBuckets(c *Cluster, mui int, sg map[string]statGroup, sd map[string]sta
 	return sts
 }
 
+// influxdbWrapper wraps the shared InfluxDB backend to satisfy the local DBWriter interface.
+type influxdbWrapper struct {
+	writer backend.DBWriter
+}
+
+func (w *influxdbWrapper) Init(ctx context.Context, clusterName string, cfg *tomlConfig, _ int, _ map[string]statDetail) error {
+	var err error
+	w.writer, err = backend.NewInfluxDB(ctx, clusterName, cfg.InfluxDB)
+	return err
+}
+
+func (w *influxdbWrapper) WritePoints(ctx context.Context, points []backend.Point) error {
+	return w.writer.WritePoints(ctx, points)
+}
+
+// influxdbv2Wrapper wraps the shared InfluxDB v2 backend to satisfy the local DBWriter interface.
+type influxdbv2Wrapper struct {
+	writer backend.DBWriter
+}
+
+func (w *influxdbv2Wrapper) Init(ctx context.Context, clusterName string, cfg *tomlConfig, _ int, _ map[string]statDetail) error {
+	var err error
+	w.writer, err = backend.NewInfluxDBv2(ctx, clusterName, cfg.InfluxDBv2)
+	return err
+}
+
+func (w *influxdbv2Wrapper) WritePoints(ctx context.Context, points []backend.Point) error {
+	return w.writer.WritePoints(ctx, points)
+}
+
+// discardWrapper wraps the shared discard backend to satisfy the local DBWriter interface.
+type discardWrapper struct {
+	writer backend.DBWriter
+}
+
+func (w *discardWrapper) Init(_ context.Context, _ string, _ *tomlConfig, _ int, _ map[string]statDetail) error {
+	w.writer = backend.NewDiscard()
+	return nil
+}
+
+func (w *discardWrapper) WritePoints(ctx context.Context, points []backend.Point) error {
+	return w.writer.WritePoints(ctx, points)
+}
+
 // getDBWriter returns a DBWriter implementation based on the plugin name
 // returns an error if the plugin name is not recognized
 func getDBWriter(sp string) (DBWriter, error) {
 	switch sp {
 	case discardPluginName:
-		return GetDiscardWriter(), nil
+		return &discardWrapper{}, nil
 	case influxPluginName:
-		return GetInfluxDBWriter(), nil
+		return &influxdbWrapper{}, nil
 	case influxV2PluginName:
-		return GetInfluxDBv2Writer(), nil
+		return &influxdbv2Wrapper{}, nil
 	case promPluginName:
 		return GetPrometheusWriter(), nil
 	default:

@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"context"
@@ -6,28 +6,23 @@ import (
 	"log/slog"
 	"time"
 
-	cfglib "github.com/isilon/powerscale_data_insights/internal/config"
+	"github.com/isilon/powerscale_data_insights/internal/config"
 	client "github.com/influxdata/influxdb1-client/v2"
 )
 
-// InfluxDBSink defines the data to allow us talk to an InfluxDB database
+// InfluxDBSink writes Points to an InfluxDB v1 database.
 type InfluxDBSink struct {
 	cluster  string
 	client   client.Client
 	bpConfig client.BatchPointsConfig
 }
 
-// GetInfluxDBWriter returns an InfluxDB DBWriter
-func GetInfluxDBWriter() DBWriter {
-	return &InfluxDBSink{}
-}
-
-// Init initializes an InfluxDBSink so that points can be written
-func (s *InfluxDBSink) Init(_ context.Context, cluster string, config *tomlConfig, _ int, _ map[string]statDetail) error {
-	s.cluster = cluster
+// NewInfluxDB creates and connects an InfluxDB v1 backend writer.
+func NewInfluxDB(ctx context.Context, clusterName string, ic config.InfluxDBConfig) (DBWriter, error) {
+	s := &InfluxDBSink{cluster: clusterName}
 	var username, password string
 	var err error
-	ic := config.InfluxDB
+
 	scheme := "http"
 	if ic.UseSSL {
 		scheme = "https"
@@ -42,9 +37,9 @@ func (s *InfluxDBSink) Init(_ context.Context, cluster string, config *tomlConfi
 	if ic.Authenticated {
 		username = ic.Username
 		password = ic.Password
-		password, err = cfglib.SecretFromEnv(password)
+		password, err = config.SecretFromEnv(password)
 		if err != nil {
-			return fmt.Errorf("unable to retrieve InfluxDB password from environment: %w", err)
+			return nil, fmt.Errorf("unable to retrieve InfluxDB password from environment: %w", err)
 		}
 	}
 
@@ -55,19 +50,21 @@ func (s *InfluxDBSink) Init(_ context.Context, cluster string, config *tomlConfi
 		InsecureSkipVerify: ic.InsecureSkipVerify,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create InfluxDB client: %w", err)
+		return nil, fmt.Errorf("failed to create InfluxDB client: %w", err)
 	}
 	// ping the database to ensure we can connect
 	responseTime, response, err := dbClient.Ping(30 * time.Second)
 	if err != nil {
-		return fmt.Errorf("failed to ping InfluxDB: %w", err)
+		return nil, fmt.Errorf("failed to ping InfluxDB: %w", err)
 	}
-	log.Info("successfully connected to InfluxDB", "response", response, "response_time", responseTime)
+	slog.Info("successfully connected to InfluxDB",
+		slog.String("response", response),
+		slog.Duration("response_time", responseTime))
 	s.client = dbClient
-	return nil
+	return s, nil
 }
 
-// WritePoints writes a batch of points to InfluxDB
+// WritePoints writes a batch of Points to InfluxDB v1.
 func (s *InfluxDBSink) WritePoints(_ context.Context, points []Point) error {
 	bp, err := client.NewBatchPoints(s.bpConfig)
 	if err != nil {
@@ -75,11 +72,11 @@ func (s *InfluxDBSink) WritePoints(_ context.Context, points []Point) error {
 	}
 	for _, point := range points {
 		var pts []*client.Point
-		for i, f := range point.fields {
+		for i, f := range point.Fields {
 			var pt *client.Point
-			pt, err = client.NewPoint(point.name, point.tags[i], f, time.Unix(point.time, 0).UTC())
+			pt, err = client.NewPoint(point.Name, point.Tags[i], f, time.Unix(point.Time, 0).UTC())
 			if err != nil {
-				log.Warn("failed to create point", slog.String("measurement", point.name))
+				slog.Warn("failed to create point", slog.String("measurement", point.Name))
 				continue
 			}
 			pts = append(pts, pt)
@@ -88,7 +85,6 @@ func (s *InfluxDBSink) WritePoints(_ context.Context, points []Point) error {
 			bp.AddPoints(pts)
 		}
 	}
-	// write the batch
 	err = s.client.Write(bp)
 	if err != nil {
 		return fmt.Errorf("failed to write batch of points: %w", err)

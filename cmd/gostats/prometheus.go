@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -426,7 +427,7 @@ func (s *PrometheusSink) addMetricFamily(sample *Sample, mname string, desc stri
 }
 
 // WritePoints writes a batch of points to Prometheus
-func (s *PrometheusSink) WritePoints(_ context.Context, points []Point) error {
+func (s *PrometheusSink) WritePoints(_ context.Context, points []backend.Point) error {
 	// Currently only one thread writing at any one time, but let's protect ourselves
 	s.Lock()
 	defer s.Unlock()
@@ -434,12 +435,12 @@ func (s *PrometheusSink) WritePoints(_ context.Context, points []Point) error {
 	now := time.Now()
 
 	for _, point := range points {
-		promstat, ok := s.metricMap[point.name]
+		promstat, ok := s.metricMap[point.Name]
 		if !ok {
-			return fmt.Errorf("unable to find metric map entry for point %q", point.name)
+			return fmt.Errorf("unable to find metric map entry for point %q", point.Name)
 		}
 		if !promstat.valid {
-			log.Debug("skipping invalid stat", slog.String("stat", point.name))
+			log.Debug("skipping invalid stat", slog.String("stat", point.Name))
 			continue
 		}
 		// expire the stats based off their update interval
@@ -448,8 +449,8 @@ func (s *PrometheusSink) WritePoints(_ context.Context, points []Point) error {
 		if expiration < 5 {
 			expiration = time.Duration(5 * time.Second)
 		}
-		for i, fields := range point.fields {
-			sampleID := CreateSampleID(point.tags[i])
+		for i, fields := range point.Fields {
+			sampleID := CreateSampleID(point.Tags[i])
 			labels := make(prometheus.Labels)
 			// If instance_label_name is configured, stamp the Isilon cluster name
 			// under that label as well as the standard "cluster" label. This is
@@ -466,7 +467,7 @@ func (s *PrometheusSink) WritePoints(_ context.Context, points []Point) error {
 			if len(fields) > 1 {
 				multiValued = true
 			}
-			basename := promStatBasename(point.name)
+			basename := promStatBasename(point.Name)
 			for k, v := range fields {
 				var name string
 				// ugly special case handling
@@ -489,10 +490,10 @@ func (s *PrometheusSink) WritePoints(_ context.Context, points []Point) error {
 				case int64:
 					value = float64(v)
 				default:
-					return fmt.Errorf("cannot convert field %q value of type %T to float64 in point %q", k, v, point.name)
+					return fmt.Errorf("cannot convert field %q value of type %T to float64 in point %q", k, v, point.Name)
 				}
 				log.Debug("assigning metric", slog.String("metric", name), slog.Float64("value", value))
-				for tag, value := range point.tags[i] {
+				for tag, value := range point.Tags[i] {
 					log.Debug("assigning label", slog.String("label", tag), slog.String("value", value))
 					labels[tag] = value
 				}
@@ -500,7 +501,7 @@ func (s *PrometheusSink) WritePoints(_ context.Context, points []Point) error {
 				sample := &Sample{
 					Labels:     labels,
 					Value:      value,
-					Timestamp:  time.Unix(point.time, 0),
+					Timestamp:  time.Unix(point.Time, 0),
 					Expiration: now.Add(expiration),
 				}
 				s.addMetricFamily(sample, name, promstat.description, sampleID)

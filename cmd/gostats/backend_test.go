@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
+
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 )
 
 // setMemoryBackend sets the logging backend to an in-memory backend for testing
@@ -383,15 +385,15 @@ func TestDecodeStat_UnknownType(t *testing.T) {
 // Test isInvalidStat for change_notify and read_directory_change
 func TestIsInvalidStat(t *testing.T) {
 	setMemoryBackend()
-	tags := ptTags{"op_name": "change_notify"}
+	tags := backend.Tags{"op_name": "change_notify"}
 	if !isInvalidStat(tags) {
 		t.Errorf("expected true for change_notify")
 	}
-	tags = ptTags{"op_name": "read_directory_change"}
+	tags = backend.Tags{"op_name": "read_directory_change"}
 	if !isInvalidStat(tags) {
 		t.Errorf("expected true for read_directory_change")
 	}
-	tags = ptTags{"op_name": "other"}
+	tags = backend.Tags{"op_name": "other"}
 	if isInvalidStat(tags) {
 		t.Errorf("expected false for other")
 	}

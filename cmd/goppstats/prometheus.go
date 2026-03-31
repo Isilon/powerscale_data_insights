@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
 )
 
@@ -45,8 +45,9 @@ type PrometheusSink struct {
 	cluster           *Cluster // needed to enable per-cluster export id lookup
 	exports           exportMap
 
-	dsm    promDsMap
-	client PrometheusClient
+	dsm          promDsMap
+	dsByStatKey  map[string]promDsInternal // reverse lookup from StatKey to dataset info
+	client       PrometheusClient
 
 	sync.Mutex
 	fam map[string]*MetricFamily
@@ -348,11 +349,17 @@ func (s *PrometheusSink) CreateDataset(id int, entry DsInfoEntry) {
 	}
 	s.dsm[id] = makePromDataset(entry)
 	s.makePromMetrics(id)
+	// Populate reverse lookup by StatKey
+	s.dsByStatKey[entry.StatKey] = s.dsm[id]
 }
 
 // ClearDataset removes the dataset with the given id including
 // unregistering all of the Prometheus gauges
 func (s *PrometheusSink) ClearDataset(id int) {
+	// Remove from reverse lookup
+	if dsi, ok := s.dsm[id]; ok {
+		delete(s.dsByStatKey, dsi.ds.StatKey)
+	}
 	// clear the map entry
 	delete(s.dsm, id)
 }
@@ -364,6 +371,7 @@ func (s *PrometheusSink) UpdateDatasets(di *DsInfo) {
 	if s.dsm == nil {
 		// First time through so allocate and set up the maps and gauges
 		s.dsm = make(promDsMap)
+		s.dsByStatKey = make(map[string]promDsInternal)
 		for _, ds := range di.Datasets {
 			s.CreateDataset(ds.ID, ds)
 		}
@@ -517,76 +525,81 @@ func (s *PrometheusSink) addMetricFamily(sample *Sample, mname string, desc stri
 	addSample(fam, sample, sampleID)
 }
 
-// WritePPStats takes an array of PPStatResults and "writes" them to Prometheus
+// WritePoints takes an array of generic Points and "writes" them to Prometheus
 // (in the case of Prometheus, this means adding them to the data exposed via http
 // that the Prometheus server will scrape)
-func (s *PrometheusSink) WritePPStats(ctx context.Context, ds DsInfoEntry, ppstats []PPStatResult) error {
+func (s *PrometheusSink) WritePoints(_ context.Context, points []backend.Point) error {
 	// Currently only one thread writing at any one time, but let's protect ourselves
 	s.Lock()
 	defer s.Unlock()
 
 	now := time.Now()
 
-	dsi := s.dsm[ds.ID]
-	for _, ppstat := range ppstats {
-		fieldMap := fieldsForPPStat(ppstat)
-		tags := tagsForPPStat(ctx, ppstat, s.cluster, s.exports)
-		sampleID := CreateSampleID(tags)
-		labels := make(prometheus.Labels)
-		labels["cluster"] = s.clusterName
-		labels["node"] = strconv.Itoa(ppstat.Node)
-		// If instance_label_name is configured, stamp the Isilon cluster name
-		// under that label as well as the standard "cluster" label. This is
-		// useful in Kubernetes environments where a Prometheus external label
-		// named "cluster" identifies the Kubernetes cluster; Prometheus renames
-		// any pre-existing "cluster" label on scraped metrics to "exported_cluster",
-		// making direct filtering awkward. Choosing a non-conflicting label name
-		// (e.g. "isilon_cluster") preserves the Isilon identity without renaming.
-		if s.instanceLabelName != "" {
-			labels[s.instanceLabelName] = s.clusterName
+	for _, pt := range points {
+		dsi, ok := s.dsByStatKey[pt.Name]
+		if !ok {
+			log.Warn("unknown stat key in WritePoints, skipping", slog.String("stat_key", pt.Name))
+			continue
 		}
+		for i, fields := range pt.Fields {
+			tags := pt.Tags[i]
+			sampleID := CreateSampleID(tags)
+			labels := make(prometheus.Labels)
+			labels["cluster"] = tags["cluster"]
+			labels["node"] = tags["node"]
+			// If instance_label_name is configured, stamp the Isilon cluster name
+			// under that label as well as the standard "cluster" label. This is
+			// useful in Kubernetes environments where a Prometheus external label
+			// named "cluster" identifies the Kubernetes cluster; Prometheus renames
+			// any pre-existing "cluster" label on scraped metrics to "exported_cluster",
+			// making direct filtering awkward. Choosing a non-conflicting label name
+			// (e.g. "isilon_cluster") preserves the Isilon identity without renaming.
+			if s.instanceLabelName != "" {
+				labels[s.instanceLabelName] = tags["cluster"]
+			}
 
-		// check for the "overflows" buckets
-		// "Pinned" is special. It is effectively a regular stat gather not a separate bucket.
-		// We do add a label to show whether it was a pinned workflow or not.
-		workloadType := ppstat.WorkloadType
-		if workloadType != nil && *workloadType != wPinned {
-			// validate the return
-			if !isValidWorkloadType(*workloadType) {
-				log.Error("invalid workload type found in output, ignoring", slog.String("workload_type", *workloadType))
-				continue
-			}
-		} else {
-			// Regular stat so include the additional dataset tags
-			for _, label := range dsi.ds.Metrics {
-				labels[label] = tags[label]
-			}
-			if workloadType != nil && *workloadType == wPinned {
-				labels["pinned"] = "true"
+			// check for the "overflows" buckets
+			// "Pinned" is special. It is effectively a regular stat gather not a separate bucket.
+			// We do add a label to show whether it was a pinned workflow or not.
+			workloadType := tags["workload_type"]
+			if workloadType != "" && workloadType != wPinned {
+				// validate the return
+				if !isValidWorkloadType(workloadType) {
+					log.Error("invalid workload type found in output, ignoring", slog.String("workload_type", workloadType))
+					continue
+				}
 			} else {
-				labels["pinned"] = "false"
+				// Regular stat so include the additional dataset tags
+				for _, label := range dsi.ds.Metrics {
+					labels[label] = tags[label]
+				}
+				if workloadType == wPinned {
+					labels["pinned"] = "true"
+				} else {
+					labels["pinned"] = "false"
+				}
 			}
-		}
 
-		for _, field := range ppFixedFields {
-			// overflow bucket keys are of the form "<bucket>_<field>"
-			fieldKey := field
-			if workloadType != nil && *workloadType != wPinned {
-				fieldKey = *workloadType + "_" + field
+			for _, field := range ppFixedFields {
+				// overflow bucket keys are of the form "<bucket>_<field>"
+				fieldKey := field
+				if workloadType != "" && workloadType != wPinned {
+					fieldKey = workloadType + "_" + field
+				}
+				fullname := dsi.metrics[fieldKey].name
+				description := dsi.metrics[fieldKey].description
+				value, ok := fields[field].(float64)
+				if !ok {
+					return fmt.Errorf("unexpected null value for field %q in stat key %q", field, pt.Name)
+				}
+				sample := &Sample{
+					Labels:     labels,
+					Value:      value,
+					Timestamp:  time.Unix(pt.Time, 0),
+					Expiration: now.Add(30 * time.Second),
+				}
+				s.addMetricFamily(sample, fullname, description, sampleID)
 			}
-			fullname := dsi.metrics[fieldKey].name
-			description := dsi.metrics[fieldKey].description
-			value, ok := fieldMap[field].(float64)
-			if !ok {
-				return fmt.Errorf("unexpected null value for field %q in dataset %q", field, ds.Name)
-			}
-			sample := &Sample{
-				Labels:     labels,
-				Value:      value,
-				Timestamp:  time.Unix(ppstat.UnixTime, 0),
-				Expiration: now.Add(30 * time.Second),
-			}
-			s.addMetricFamily(sample, fullname, description, sampleID)
 		}
 	}
 

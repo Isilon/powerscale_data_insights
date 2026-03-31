@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 )
 
 // the ppFixedFields and workloadTypes definitions are a bit ugly because there are no array constants in Go
@@ -65,14 +67,10 @@ func newExportMap(enabled bool) exportMap {
 	return *m
 }
 
-// types for the decoded fields and tags
-type ptFields map[string]any
-type ptTags map[string]string
-
 // fieldsForPPStat creates and populates the fixed/required fields for
 // every partitioned performance stat result
-func fieldsForPPStat(ppstat PPStatResult) ptFields {
-	fields := make(ptFields)
+func fieldsForPPStat(ppstat PPStatResult) backend.Fields {
+	fields := make(backend.Fields)
 
 	// Required fields
 	fields[fBytesIn] = ppstat.BytesIn
@@ -94,8 +92,8 @@ func fieldsForPPStat(ppstat PPStatResult) ptFields {
 // match the original workload definition i.e.
 // export_id groupname local_address path protocol remote_address share_name username zone_name
 // squash some of the fields e.g. Username vs UserID vs UserSID
-func tagsForPPStat(ctx context.Context, ppstat PPStatResult, cluster *Cluster, exports exportMap) ptTags {
-	tags := make(ptTags)
+func tagsForPPStat(ctx context.Context, ppstat PPStatResult, cluster *Cluster, exports exportMap) backend.Tags {
+	tags := make(backend.Tags)
 
 	// NFS export id
 	if ppstat.ExportID != nil {
@@ -198,4 +196,23 @@ func tagsForPPStat(ctx context.Context, ppstat PPStatResult, cluster *Cluster, e
 	}
 
 	return tags
+}
+
+// ppStatsToPoints converts PP stat results into generic Points for the backend.
+func ppStatsToPoints(ctx context.Context, clusterName string, ds DsInfoEntry, ppstats []PPStatResult, cluster *Cluster, exports exportMap) []backend.Point {
+	points := make([]backend.Point, 0, len(ppstats))
+	for _, ppstat := range ppstats {
+		fields := fieldsForPPStat(ppstat)
+		tags := tagsForPPStat(ctx, ppstat, cluster, exports)
+		tags["cluster"] = clusterName
+		tags["node"] = strconv.Itoa(ppstat.Node)
+		p := backend.Point{
+			Name:   ds.StatKey,
+			Time:   ppstat.UnixTime,
+			Fields: []backend.Fields{fields},
+			Tags:   []backend.Tags{tags},
+		}
+		points = append(points, p)
+	}
+	return points
 }

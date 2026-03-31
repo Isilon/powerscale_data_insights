@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/isilon/powerscale_data_insights/internal/api"
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 	"github.com/isilon/powerscale_data_insights/internal/config"
 	"github.com/isilon/powerscale_data_insights/internal/logging"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
@@ -257,6 +258,9 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int) {
 		return
 	}
 
+	// Create export map for PP stat → Point conversion
+	exports := newExportMap(gc.LookupExportIDs)
+
 	// loop collecting and pushing stats
 	log.Info("Starting stat collection loop for cluster", slog.String("cluster", c.ClusterName))
 	for {
@@ -281,7 +285,10 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int) {
 				slog.String("name", entry.Name),
 				slog.String("statkey", entry.StatKey))
 		}
-		ss.UpdateDatasets(di)
+		// UpdateDatasets is Prometheus-specific
+		if ps, ok := ss.(*PrometheusSink); ok {
+			ps.UpdateDatasets(di)
+		}
 
 		// Collect one set of stats
 		log.Info("Cluster start collecting pp stats", slog.String("cluster", c.ClusterName))
@@ -322,10 +329,14 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int) {
 
 			log.Info("Got workload entries", slog.Int("count", len(sr)))
 			log.Info("Cluster start writing stats to back end", slog.String("cluster", c.ClusterName))
-			// write PP stats, now with retries
+
+			// Convert PP stats to generic Points
+			points := ppStatsToPoints(ctx, c.ClusterName, ds, sr, c, exports)
+
+			// write points, now with retries
 			retryTime = time.Second * time.Duration(gc.ProcessorRetryIntvl)
 			for i := 1; i <= gc.ProcessorMaxRetries; i++ {
-				err = ss.WritePPStats(ctx, ds, sr)
+				err = ss.WritePoints(ctx, points)
 				if err == nil {
 					break
 				}
@@ -364,15 +375,59 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int) {
 	}
 }
 
+// influxdbWrapper adapts the shared InfluxDB v1 backend to the local DBWriter interface.
+type influxdbWrapper struct {
+	writer backend.DBWriter
+}
+
+func (w *influxdbWrapper) Init(ctx context.Context, cluster *Cluster, cfg *tomlConfig, _ int) error {
+	var err error
+	w.writer, err = backend.NewInfluxDB(ctx, cluster.ClusterName, cfg.InfluxDB)
+	return err
+}
+
+func (w *influxdbWrapper) WritePoints(ctx context.Context, points []backend.Point) error {
+	return w.writer.WritePoints(ctx, points)
+}
+
+// influxdbv2Wrapper adapts the shared InfluxDB v2 backend to the local DBWriter interface.
+type influxdbv2Wrapper struct {
+	writer backend.DBWriter
+}
+
+func (w *influxdbv2Wrapper) Init(ctx context.Context, cluster *Cluster, cfg *tomlConfig, _ int) error {
+	var err error
+	w.writer, err = backend.NewInfluxDBv2(ctx, cluster.ClusterName, cfg.InfluxDBv2)
+	return err
+}
+
+func (w *influxdbv2Wrapper) WritePoints(ctx context.Context, points []backend.Point) error {
+	return w.writer.WritePoints(ctx, points)
+}
+
+// discardWrapper adapts the shared discard backend to the local DBWriter interface.
+type discardWrapper struct {
+	writer backend.DBWriter
+}
+
+func (w *discardWrapper) Init(_ context.Context, _ *Cluster, _ *tomlConfig, _ int) error {
+	w.writer = backend.NewDiscard()
+	return nil
+}
+
+func (w *discardWrapper) WritePoints(ctx context.Context, points []backend.Point) error {
+	return w.writer.WritePoints(ctx, points)
+}
+
 // return a DBWriter for the given backend name
 func getDBWriter(sp string) (DBWriter, error) {
 	switch sp {
 	case discardPluginName:
-		return GetDiscardWriter(), nil
+		return &discardWrapper{}, nil
 	case influxPluginName:
-		return GetInfluxDBWriter(), nil
+		return &influxdbWrapper{}, nil
 	case influxV2PluginName:
-		return GetInfluxDBv2Writer(), nil
+		return &influxdbv2Wrapper{}, nil
 	case promPluginName:
 		return GetPrometheusWriter(), nil
 	default:

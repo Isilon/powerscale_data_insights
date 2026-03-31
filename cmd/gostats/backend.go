@@ -8,30 +8,15 @@ import (
 	"maps"
 	"strconv"
 	"time"
+
+	"github.com/isilon/powerscale_data_insights/internal/backend"
 )
-
-// Point represents a single named measurement at a given time in a timeseries data set.
-// Because some OneFS statistics return multiple sets of data with unique combinations
-// of tags, there is a single measurement name, and timestamp, but an array of
-// field names/values, and an array of tag names/values.
-type Point struct {
-	name   string
-	time   int64
-	fields []ptFields
-	tags   []ptTags
-}
-
-// ptFields maps the fields for a given instance of a metric to their values
-type ptFields map[string]any
-
-// ptTags maps the tags for a given instance of a metric to their values
-type ptTags map[string]string
 
 // decodeProtocolSummaryStat takes a SummaryStatsProtocolItem and decodes it into
 // fields and tags usable by the back end writers.
-func decodeProtocolSummaryStat(cluster string, pss SummaryStatsProtocolItem) (ptFields, ptTags) {
-	tags := ptTags{"cluster": cluster}
-	fields := make(ptFields)
+func decodeProtocolSummaryStat(cluster string, pss SummaryStatsProtocolItem) (backend.Fields, backend.Tags) {
+	tags := backend.Tags{"cluster": cluster}
+	fields := make(backend.Fields)
 	if pss.Node != nil {
 		tags["node"] = strconv.FormatInt(*pss.Node, 10)
 	}
@@ -60,9 +45,9 @@ func decodeProtocolSummaryStat(cluster string, pss SummaryStatsProtocolItem) (pt
 
 // decodeClientSummaryStat takes a SummaryStatsClientItem and decodes it into
 // fields and tags usable by the back end writers.
-func decodeClientSummaryStat(cluster string, css SummaryStatsClientItem) (ptFields, ptTags) {
-	tags := ptTags{"cluster": cluster}
-	fields := make(ptFields)
+func decodeClientSummaryStat(cluster string, css SummaryStatsClientItem) (backend.Fields, backend.Tags) {
+	tags := backend.Tags{"cluster": cluster}
+	fields := make(backend.Fields)
 	if css.Node != nil {
 		tags["node"] = strconv.FormatInt(*css.Node, 10)
 	}
@@ -96,9 +81,9 @@ func decodeClientSummaryStat(cluster string, css SummaryStatsClientItem) (ptFiel
 
 // decodeDriveSummaryStat takes a SummaryStatsDriveItem and decodes it into
 // fields and tags usable by the back end writers.
-func decodeDriveSummaryStat(cluster string, dss SummaryStatsDriveItem) (ptFields, ptTags) {
-	tags := ptTags{"cluster": cluster}
-	fields := make(ptFields)
+func decodeDriveSummaryStat(cluster string, dss SummaryStatsDriveItem) (backend.Fields, backend.Tags) {
+	tags := backend.Tags{"cluster": cluster}
+	fields := make(backend.Fields)
 	tags["drive_id"] = dss.DriveID
 	tags["type"] = dss.Type
 	fields["access_latency"] = dss.AccessLatency
@@ -120,16 +105,16 @@ func decodeDriveSummaryStat(cluster string, dss SummaryStatsDriveItem) (ptFields
 
 // decodeStat takes the JSON result from the OneFS statistics API and breaks it
 // out into fields and tags usable by the back end writers.
-func decodeStat(cluster string, stat StatResult, includeDegraded bool, degraded bool) ([]ptFields, []ptTags, error) {
-	var initialTags ptTags
-	clusterStatTags := ptTags{"cluster": cluster}
-	nodeStatTags := ptTags{"cluster": cluster}
+func decodeStat(cluster string, stat StatResult, includeDegraded bool, degraded bool) ([]backend.Fields, []backend.Tags, error) {
+	var initialTags backend.Tags
+	clusterStatTags := backend.Tags{"cluster": cluster}
+	nodeStatTags := backend.Tags{"cluster": cluster}
 	if includeDegraded {
 		clusterStatTags["degraded"] = strconv.FormatBool(degraded)
 		nodeStatTags["degraded"] = strconv.FormatBool(degraded)
 	}
-	var mfa []ptFields // metric field array i.e., array of field to value mappings for each unique tag set for this metric
-	var mta []ptTags   // metric tag array i.e., array of tag name to tag value mappings for each unique tag set for this metric
+	var mfa []backend.Fields // metric field array i.e., array of field to value mappings for each unique tag set for this metric
+	var mta []backend.Tags   // metric tag array i.e., array of tag name to tag value mappings for each unique tag set for this metric
 
 	// Handle cluster vs node stats
 	if stat.Devid == 0 {
@@ -156,9 +141,9 @@ func decodeStat(cluster string, stat StatResult, includeDegraded bool, degraded 
 // 1. We will never see a directly nested array
 // 2. Primitive values (float64, int64, int, string) will only be seen at depth 0
 // 3. We will never see a string value (tag) at depth 0
-func decodeValue(statname string, fieldname string, v any, baseTags ptTags, depth int) ([]ptFields, []ptTags, error) {
-	var mfa []ptFields // metric field array i.e., array of field to value mappings for each unique tag set for this metric
-	var mta []ptTags   // metric tag array i.e., array of tag name to tag value mappings for each unique tag set for this metric
+func decodeValue(statname string, fieldname string, v any, baseTags backend.Tags, depth int) ([]backend.Fields, []backend.Tags, error) {
+	var mfa []backend.Fields // metric field array i.e., array of field to value mappings for each unique tag set for this metric
+	var mta []backend.Tags   // metric tag array i.e., array of tag name to tag value mappings for each unique tag set for this metric
 
 	log.Debug("decodeValue entry", slog.String("stat", statname), slog.String("field", fieldname), "value", v, slog.Int("depth", depth))
 	switch val := v.(type) {
@@ -168,7 +153,7 @@ func decodeValue(statname string, fieldname string, v any, baseTags ptTags, dept
 			// We should never get here, as we should have handled this in the parent call
 			die("unexpected primitive value with no name", slog.String("stat", statname))
 		}
-		fields := make(ptFields)
+		fields := make(backend.Fields)
 		fields[fieldname] = val
 		log.Debug("decoded fields", slog.Any("fields", fields))
 		mfa = append(mfa, fields)
@@ -198,11 +183,11 @@ func decodeValue(statname string, fieldname string, v any, baseTags ptTags, dept
 		return mfa, mta, nil
 	case map[string]any:
 		log.Debug("decoding map", slog.Int("size", len(val)))
-		fields := make(ptFields)
-		tags := make(ptTags)
+		fields := make(backend.Fields)
+		tags := make(backend.Tags)
 		maps.Copy(tags, baseTags)
-		subfields := make([]ptFields, 0)
-		subtags := make([]ptTags, 0)
+		subfields := make([]backend.Fields, 0)
+		subtags := make([]backend.Tags, 0)
 		// is this a simple map with no sub-arrays?
 		simple := true
 		for km, vm := range val {
@@ -243,8 +228,8 @@ func decodeValue(statname string, fieldname string, v any, baseTags ptTags, dept
 			// We had a sub-array, so we need to combine the base fields and tags with each of the sub ones
 			log.Debug("decoded complex map", slog.Int("field count", len(subfields)), slog.Int("tag count", len(subtags)))
 			for i := range subfields {
-				var f ptFields
-				var t ptTags
+				var f backend.Fields
+				var t backend.Tags
 				f = maps.Clone(fields)
 				t = maps.Clone(tags)
 				// merge the base fields and tags into the sub ones
@@ -270,7 +255,7 @@ func decodeValue(statname string, fieldname string, v any, baseTags ptTags, dept
 //
 // Some statistics (specifically, SMB change notify) have unusual semantics that can result in
 // misleadingly large latency values.
-func isInvalidStat(tags ptTags) bool {
+func isInvalidStat(tags backend.Tags) bool {
 	if tags["op_name"] == "change_notify" || tags["op_name"] == "read_directory_change" {
 		return true
 	}
@@ -279,7 +264,7 @@ func isInvalidStat(tags ptTags) bool {
 
 // WriteStats takes an array of StatResults and writes them to the requested backend database
 func (c *Cluster) WriteStats(ctx context.Context, gc globalConfig, ss DBWriter, stats []StatResult) error {
-	points := make([]Point, 0, len(stats)) // try to preallocate at least some space here
+	points := make([]backend.Point, 0, len(stats)) // try to preallocate at least some space here
 	for _, stat := range stats {
 		degraded := false
 		switch stat.ErrorCode {
@@ -310,7 +295,7 @@ func (c *Cluster) WriteStats(ctx context.Context, gc globalConfig, ss DBWriter, 
 		if err != nil {
 			return fmt.Errorf("failed to decode stat %s: %w", stat.Key, err)
 		}
-		point := Point{name: stat.Key, time: stat.UnixTime, fields: fa, tags: ta}
+		point := backend.Point{Name: stat.Key, Time: stat.UnixTime, Fields: fa, Tags: ta}
 		points = append(points, point)
 	}
 	// write the points to the database, retrying up to the limit

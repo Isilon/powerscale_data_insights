@@ -201,13 +201,18 @@ packages. Eliminate copy-paste maintenance burden.
    endpoints. Extract the client/auth layer; collectors provide their own
    endpoint-specific methods.
 
-5. **`internal/backend`** — The most nuanced extraction:
-   - Shared types: `Point`, `ptFields`, `ptTags` (or a generalized equivalent)
-   - Shared init/connection logic for InfluxDB v1, v2, Prometheus
-   - Collector-specific write methods remain in `cmd/` code
-   - Approach: shared base structs with embedded composition, not a single
-     `DBWriter` interface. Each collector defines its own writer interface
-     that composes the shared base.
+5. **`internal/backend`** — Unified backend with shared Point abstraction:
+   - Shared types: `Point` (exported), `Fields` (map[string]any), `Tags` (map[string]string)
+   - Shared `DBWriter` interface: `WritePoints(ctx, []Point) error`
+   - Shared implementations: InfluxDB v1, InfluxDB v2, Discard — constructor
+     functions (`NewInfluxDB`, `NewInfluxDBv2`, `NewDiscard`) that return `DBWriter`
+   - Prometheus backends stay per-collector (different metric modeling strategies)
+     but implement the shared `DBWriter` interface
+   - **goppstats architectural fix:** refactor to convert `PPStatResult` → `Point`
+     before calling the backend (matching gostats's existing clean separation
+     of OneFS-specific data → generic Point → backend). The `WritePPStats`
+     and `UpdateDatasets` methods are removed from the common interface;
+     `UpdateDatasets` moves to a Prometheus-specific concern.
 
 6. **Update dashgen** — Refactor dashgen's PAPI client to use `internal/api`
 
