@@ -1,0 +1,137 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_INFLUXDB",
+      "label": "InfluxDB",
+      "description": "InfluxDB datasource for PowerScale metrics",
+      "type": "datasource",
+      "pluginId": "influxdb",
+      "pluginName": "InfluxDB"
+    }
+  ],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "influxdb", "name": "InfluxDB", "version": "1.0.0" },
+    { "type": "panel", "id": "table", "name": "Table", "version": "" }
+  ],
+  "id": null,
+  "uid": null,
+  "title": "PowerScale - Cluster Capacity",
+  "description": "Cluster capacity utilization overview for Dell PowerScale clusters",
+  "tags": ["powerscale", "gostats"],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": {},
+  "refresh": "",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+        "query": "SHOW TAG VALUES WITH KEY = \"cluster\"",
+        "definition": "SHOW TAG VALUES WITH KEY = \"cluster\"",
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": "",
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Cluster Capacity Utilization",
+      "description": "Shows the current capacity utilization for each selected cluster. Color-coded: green (<85%), orange (85-90%), red (>90%).",
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "rawQuery": true,
+          "query": "SELECT 100.0 - last(\"value\") as \"utilization\" FROM \"ifs.percent.avail\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval), \"cluster\" fill(none)",
+          "resultFormat": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "filterable": true,
+            "inspect": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Time" },
+            "properties": [
+              { "id": "custom.width", "value": 200 },
+              { "id": "unit", "value": "dateTimeAsIso" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "cluster" },
+            "properties": [
+              { "id": "displayName", "value": "Cluster" },
+              { "id": "custom.width", "value": 250 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "utilization" },
+            "properties": [
+              { "id": "displayName", "value": "Capacity Utilization %" },
+              { "id": "unit", "value": "percent" },
+              { "id": "decimals", "value": 2 },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "orange", "value": 85 },
+                  { "color": "red", "value": 90 }
+                ]
+              }},
+              { "id": "custom.cellOptions", "value": {
+                "type": "color-background",
+                "mode": "gradient"
+              }}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "sortBy": [
+          { "displayName": "Capacity Utilization %", "desc": true }
+        ]
+      }
+    }
+  ],
+  "links": []
+}
