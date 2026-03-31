@@ -6,7 +6,8 @@ bin/
 /goppstats-dash-gen
 *.exe
 
-# Go
+# Go workspace (not used; single-module project)
+go.work
 go.work.sum
 
 # Logs
