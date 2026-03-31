@@ -6,7 +6,7 @@ Project guidance for AI assistants and contributors.
 
 **Phase 1 (Scaffolding):** Complete
 **Phase 2 (Shared Library Extraction):** Complete
-**Phase 3 (Dashboard Modernization):** Not started
+**Phase 3 (Dashboard Modernization):** Mostly complete (4 core dashboards + dashgen rewrite done; interim dashboards pending)
 **Phase 4 (Containerization):** Not started
 **Phase 5 (Documentation):** Skeleton only
 **Phase 6 (Release):** Not started
@@ -20,10 +20,15 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - Five shared internal packages extracted (see Architecture below)
 - goppstats refactored: PP data converts to generic Points before backends
 - All duplicated code between collectors eliminated
+- 4 core Grafana dashboards created in legacy format (schemaVersion 39,
+  modern panel types, InfluxQL, compatible with Grafana 10+)
+- dashgen rewritten to produce legacy format (was v2beta1)
 - All builds and tests pass (`make build && make test`)
 
 ### What's next
-- Phase 3: Modernize dashboards to Grafana v2beta1 (4 core + 3-5 interim)
+- Phase 3 remaining: incorporate 3-5 interim dashboards (to be provided)
+- Phase 4: Containerization (Dockerfiles, Docker Compose, GHCR publishing)
+- Phase 5: Documentation
 - A test system (OneFS cluster + InfluxDB + Grafana) will be needed to
   validate dashboards against real data
 
