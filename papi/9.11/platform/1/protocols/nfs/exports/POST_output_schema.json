@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "id": {
+      "description": "ID of created item that can be used to refer to item in the collection-item resource path.", 
+      "maximum": 18446744073709551615, 
+      "minimum": 0, 
+      "required": true, 
+      "type": "integer"
+    }
+  }, 
+  "type": "object", 
+  "x-privilege": "ISI_PRIV_NFS_EXPORTS"
+}

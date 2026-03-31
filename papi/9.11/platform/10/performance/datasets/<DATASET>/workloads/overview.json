@@ -1,0 +1,50 @@
+{
+  "DELETE_args": {
+    "description": "Delete all workloads associated with the dataset.", 
+    "type": "object"
+  }, 
+  "GET_args": {
+    "description": "List all workloads.", 
+    "properties": {
+      "dir": {
+        "description": "The direction of the sort.", 
+        "enum": [
+          "ASC", 
+          "DESC"
+        ], 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "limit": {
+        "description": "Return no more than this many results at once (see resume).", 
+        "maximum": 4294967295, 
+        "minimum": 1, 
+        "type": "integer"
+      }, 
+      "resume": {
+        "description": "Continue returning results from previous call using this token (token should come from the previous call, resume cannot be used with other options).", 
+        "maxLength": 8192, 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "sort": {
+        "description": "The field that will be used for sorting.", 
+        "maxLength": 255, 
+        "minLength": 0, 
+        "type": "string"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "POST_args": {
+    "description": "Create a new workload.", 
+    "properties": {
+      "force": {
+        "description": "For use by support only.", 
+        "type": "boolean"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource represents the collection of \"workloads\" selected for the dataset specified in the URI. A workload is a selection of specific values for each metric in its dataset. These values are \"pinned\"; statistics for them will always be collected and available for viewing at /statistics/current?key=node.accounting.workloads.dataset.<dataset-id>, even if they are not among the top resource-consuming combinations of their metrics. For example, a dataset with the metrics \"zone_name\" and \"protocol\" might have a workload with the selection \"zone_name:System\", \"protocol:nfs4\". This configuration means statistics about nfs v4 usage in the System zone are \"pinned\" and will always be collected and available, in addition to statistics about the top resource-consuming zone_name/protocol combinations."
+}

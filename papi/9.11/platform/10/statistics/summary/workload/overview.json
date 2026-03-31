@@ -1,0 +1,116 @@
+{
+  "GET_args": {
+    "description": "", 
+    "properties": {
+      "dataset": {
+        "description": "Report workload performance metrics for specified dataset. Default is 'System'.", 
+        "type": "string"
+      }, 
+      "degraded": {
+        "description": "Continue to report if some nodes do not respond.", 
+        "type": "boolean"
+      }, 
+      "domain_ids": {
+        "description": "A comma separated list. Only report statistics for domains specified by id, if configured. ", 
+        "type": "string"
+      }, 
+      "export_ids": {
+        "description": "A comma separated list. Only report statistics for exports specified by id, if configured. ", 
+        "type": "string"
+      }, 
+      "group_ids": {
+        "description": "A comma separated list. Only report statistics for groups specified by numeric GIDs, if configured. ", 
+        "type": "string"
+      }, 
+      "group_sids": {
+        "description": "A comma separated list. Only report statistics for groups specified by Group Security IDs, if configured. ", 
+        "type": "string"
+      }, 
+      "groupnames": {
+        "description": "A comma separated list. Only report statistics for groups specified by resolved names, if configured. ", 
+        "type": "string"
+      }, 
+      "job_types": {
+        "description": "A comma separated list. Only report statistics for job(s) specified by type, if configured. ", 
+        "items": {
+          "type": "string"
+        }, 
+        "type": "array"
+      }, 
+      "local_addresses": {
+        "description": "A comma separated list. Only report statistics for local hosts specified by IP addresses, if configured. ", 
+        "type": "string"
+      }, 
+      "local_names": {
+        "description": "A comma separated list. Only report statistics for local hosts specified by resolved names, if configured. ", 
+        "type": "string"
+      }, 
+      "nodes": {
+        "description": "A comma separated list. Specify node(s) for which statistics should be reported. Default is all. Zero (0) should be passed in as the sole argument to indicate local.", 
+        "type": "string"
+      }, 
+      "numeric": {
+        "description": "Do not resolve addresses and usernames to their human readable form(s). Default is false. ", 
+        "type": "boolean"
+      }, 
+      "paths": {
+        "description": "A comma separated list. Only report statistics for paths specified by name, if configured. ", 
+        "type": "string"
+      }, 
+      "protocols": {
+        "description": "A comma separated list. Default is all. (smb1, smb2, nfs3, nfs4 and s3 only at this time.)", 
+        "type": "string"
+      }, 
+      "remote_addresses": {
+        "description": "A comma separated list. Only report statistics for remote clients specified by IP addresses, if configured. ", 
+        "type": "string"
+      }, 
+      "remote_names": {
+        "description": "A comma separated list. Only report statistics for remote clients specified by resolved names, if configured. ", 
+        "type": "string"
+      }, 
+      "share_names": {
+        "description": "A comma separated list. Only report statistics for shares specified by name, if configured. ", 
+        "type": "string"
+      }, 
+      "sort": {
+        "description": "Sort data by the specified comma-separated field(s). ( node | workload_id | system_name | user_id | user_sid | username | group_id | group_sid | groupname | domain_id | path | zone_id | zone_name | export_id | local_addr | local_name | remote_addr | remote_name | protocol | share_name | job_type | cpu | bytes_in | bytes_out | ops | reads | writes | l2 | l3 | latency_read | latency_write | latency_other | error). Prepend 'asc:' or 'desc:' to a field to change the sort direction. ", 
+        "type": "string"
+      }, 
+      "system_names": {
+        "description": "A comma separated list. Only report statistics for systems specified by resolved names, if configured. ", 
+        "type": "string"
+      }, 
+      "timeout": {
+        "description": "Timeout remote commands after NUM seconds, where NUM is the integer passed to the argument.", 
+        "type": "integer"
+      }, 
+      "totalby": {
+        "description": "A comma separated list specifying what should be unique. (node | system_name | user_id | user_sid | username | zone_id | zone_name | local_addr | local_name | remote_addr | remote_name | group_id | group_sid | groupname | domain_id | path | export_id | protocol | share_name | job_type). Aggregation is performed over all the fields not specified in the list.", 
+        "type": "string"
+      }, 
+      "user_ids": {
+        "description": "A comma separated list. Only report statistics for users specified by numeric UIDs, if configured. ", 
+        "type": "string"
+      }, 
+      "user_sids": {
+        "description": "A comma separated list. Only report statistics for users specified by Security IDs, if configured. ", 
+        "type": "string"
+      }, 
+      "usernames": {
+        "description": "A comma separated list. Only report statistics for users specified by resolved names, if configured. ", 
+        "type": "string"
+      }, 
+      "zone_ids": {
+        "description": "A comma separated list. Only report statistics for users in zone specified by id, if configured. ", 
+        "type": "string"
+      }, 
+      "zone_names": {
+        "description": "A comma separated list. Only report statistics for users in zone specified by name, if configured. ", 
+        "type": "string"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource summarizes statistics about various user-configured performance datasets and workloads. The datasets and workloads can be configured at /performance/datasets and /performance/datasets/<DATASET>/workloads, respectively. The \"System\" dataset is always present in the summary by default even if not configured."
+}

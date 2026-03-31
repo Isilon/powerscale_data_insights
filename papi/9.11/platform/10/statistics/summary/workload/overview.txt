@@ -1,0 +1,414 @@
+Resource URL: /platform/<<version=10>>/statistics/summary/workload
+()
+    Overview: This resource summarizes statistics about various user-configured
+              performance datasets and workloads. The datasets and workloads
+              can be configured at /performance/datasets and
+              /performance/datasets/<DATASET>/workloads, respectively. The
+              "System" dataset is always present in the summary by default even
+              if not configured.
+()
+     Methods: GET
+
+********************************************************************************
+
+Method GET: 
+()
+URL: GET /platform/<<version=10>>/statistics/summary/workload
+
+Query arguments:
+      group_sids=<string> A comma separated list. Only report statistics for
+                          groups specified by Group Security IDs, if configured.
+        numeric=<boolean> Do not resolve addresses and usernames to their human
+                          readable form(s). Default is false.
+      export_ids=<string> A comma separated list. Only report statistics for
+                          exports specified by id, if configured.
+       degraded=<boolean> Continue to report if some nodes do not respond.
+    remote_names=<string> A comma separated list. Only report statistics for
+                          remote clients specified by resolved names, if
+                          configured.
+     share_names=<string> A comma separated list. Only report statistics for
+                          shares specified by name, if configured.
+           paths=<string> A comma separated list. Only report statistics for
+                          paths specified by name, if configured.
+       usernames=<string> A comma separated list. Only report statistics for
+                          users specified by resolved names, if configured.
+remote_addresses=<string> A comma separated list. Only report statistics for
+                          remote clients specified by IP addresses, if
+                          configured.
+       job_types=<string> A comma separated list. Only report statistics for
+                          job(s) specified by type, if configured.
+        zone_ids=<string> A comma separated list. Only report statistics for
+                          users in zone specified by id, if configured.
+      groupnames=<string> A comma separated list. Only report statistics for
+                          groups specified by resolved names, if configured.
+           nodes=<string> A comma separated list. Specify node(s) for which
+                          statistics should be reported. Default is all. Zero
+                          (0) should be passed in as the sole argument to
+                          indicate local.
+            sort=<string> Sort data by the specified comma-separated field(s).
+                          ( node | workload_id | system_name | user_id |
+                          user_sid | username | group_id | group_sid |
+                          groupname | domain_id | path | zone_id | zone_name |
+                          export_id | local_addr | local_name | remote_addr |
+                          remote_name | protocol | share_name | job_type | cpu
+                          | bytes_in | bytes_out | ops | reads | writes | l2 |
+                          l3 | latency_read | latency_write | latency_other |
+                          error). Prepend 'asc:' or 'desc:' to a field to
+                          change the sort direction.
+      domain_ids=<string> A comma separated list. Only report statistics for
+                          domains specified by id, if configured.
+      zone_names=<string> A comma separated list. Only report statistics for
+                          users in zone specified by name, if configured.
+     local_names=<string> A comma separated list. Only report statistics for
+                          local hosts specified by resolved names, if
+                          configured.
+        user_ids=<string> A comma separated list. Only report statistics for
+                          users specified by numeric UIDs, if configured.
+         totalby=<string> A comma separated list specifying what should be
+                          unique. (node | system_name | user_id | user_sid |
+                          username | zone_id | zone_name | local_addr |
+                          local_name | remote_addr | remote_name | group_id |
+                          group_sid | groupname | domain_id | path | export_id
+                          | protocol | share_name | job_type). Aggregation is
+                          performed over all the fields not specified in the
+                          list.
+ local_addresses=<string> A comma separated list. Only report statistics for
+                          local hosts specified by IP addresses, if configured.
+         dataset=<string> Report workload performance metrics for specified
+                          dataset. Default is 'System'.
+       user_sids=<string> A comma separated list. Only report statistics for
+                          users specified by Security IDs, if configured.
+       protocols=<string> A comma separated list. Default is all. (smb1, smb2,
+                          nfs3, nfs4 and s3 only at this time.)
+       group_ids=<string> A comma separated list. Only report statistics for
+                          groups specified by numeric GIDs, if configured.
+        timeout=<integer> Timeout remote commands after NUM seconds, where NUM
+                          is the integer passed to the argument.
+    system_names=<string> A comma separated list. Only report statistics for
+                          systems specified by resolved names, if configured.
+
+GET response body schema:
+{
+  "type": [
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "description": "A list of errors that may be returned.", 
+      "properties": {
+        "errors": {
+          "minItems": 1, 
+          "items": {
+            "additionalProperties": false, 
+            "type": "object", 
+            "description": "An object describing a single error.", 
+            "properties": {
+              "field": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The field with the error if applicable.", 
+                "maxLength": 8192
+              }, 
+              "message": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error message.", 
+                "maxLength": 8192
+              }, 
+              "code": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error code.", 
+                "maxLength": 8192
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 65535
+        }
+      }
+    }, 
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "properties": {
+        "workload": {
+          "minItems": 0, 
+          "items": {
+            "type": "object", 
+            "properties": {
+              "username": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The resolved text name of the user who initiated the operation."
+              }, 
+              "protocol": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The protocol of the operation."
+              }, 
+              "share_name": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The name of the SMB share through which the operation was requested."
+              }, 
+              "job_type": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The canonical name for the job followed by phase in brackets, ie. 'AVscan[1]', etc..."
+              }, 
+              "groupname": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The resolved text name of the group that initiated the operation."
+              }, 
+              "reads": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Disk read operations per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "path": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The path which the operation was requested on."
+              }, 
+              "zone_name": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The resolved text zone name"
+              }, 
+              "domain_id": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The IFS domain of the path which the operation was requested on."
+              }, 
+              "latency_write": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Latency on disk write operations.", 
+                "maximum": 18446744073709551615
+              }, 
+              "user_id": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "number"
+                ], 
+                "description": "User ID of the user who initiated the operation."
+              }, 
+              "bytes_in": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Count of bytes-in per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "writes": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Disk write operations per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "time": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "integer", 
+                "description": "Unix Epoch time in seconds that statistic was collected.", 
+                "maximum": 18446744073709551615
+              }, 
+              "local_address": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The IP address of the host receiving the operation request."
+              }, 
+              "latency_other": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Latency on other operations.", 
+                "maximum": 18446744073709551615
+              }, 
+              "node": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "The node on which the operation was performed or 0 for cluster scoped statistics.", 
+                "maximum": 2147483647
+              }, 
+              "remote_name": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The resolved text name of the RemoteAddr, if resolution can be performed."
+              }, 
+              "latency_read": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Latency on disk read operations.", 
+                "maximum": 18446744073709551615
+              }, 
+              "ops": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Operations per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "user_sid": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "User SID of the user who initiated the operation."
+              }, 
+              "bytes_out": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "Count of bytes-out per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "error": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "Report any errors during id resolution."
+              }, 
+              "remote_address": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The IP address of the host sending the operation request."
+              }, 
+              "workload_type": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The type of workload output."
+              }, 
+              "group_sid": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "Group SID of the group that initiated the operation."
+              }, 
+              "export_id": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "number"
+                ], 
+                "description": "The ID of the NFS export through which the operation was requested."
+              }, 
+              "system_name": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The process name, job ID, etc..."
+              }, 
+              "zone_id": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "number"
+                ], 
+                "description": "Zone ID"
+              }, 
+              "l2": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "L2 cache hits per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "l3": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "L3 cache hits per second.", 
+                "maximum": 18446744073709551615
+              }, 
+              "workload_id": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "integer"
+                ], 
+                "description": "ID of the workload (Pinned workloads only)."
+              }, 
+              "local_name": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "string"
+                ], 
+                "description": "The resolved text name of the LocalAddr, if resolution can be performed."
+              }, 
+              "group_id": {
+                "required": false, 
+                "type": [
+                  "null", 
+                  "number"
+                ], 
+                "description": "Group ID of the group that initiated the operation."
+              }, 
+              "cpu": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "number", 
+                "description": "The number (across all cores) of micro-seconds per second.", 
+                "maximum": 18446744073709551615
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 18446744073709551615
+        }
+      }
+    }
+  ]
+}

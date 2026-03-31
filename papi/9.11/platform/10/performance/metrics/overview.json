@@ -1,0 +1,24 @@
+{
+  "GET_args": {
+    "description": "List all metrics.", 
+    "properties": {
+      "dir": {
+        "description": "The direction of the sort.", 
+        "enum": [
+          "ASC", 
+          "DESC"
+        ], 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "sort": {
+        "description": "The field that will be used for sorting.", 
+        "maxLength": 255, 
+        "minLength": 0, 
+        "type": "string"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource lists the available metrics. A set of metrics is used to configure a dataset. The metrics dictate the workload that will be associated with the statistics tracked under a dataset."
+}

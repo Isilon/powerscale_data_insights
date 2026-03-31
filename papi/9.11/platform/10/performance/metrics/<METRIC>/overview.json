@@ -1,0 +1,7 @@
+{
+  "GET_args": {
+    "description": "View a single performance metric.", 
+    "type": "object"
+  }, 
+  "resource_description": "Review the metric used for defining a performance dataset."
+}

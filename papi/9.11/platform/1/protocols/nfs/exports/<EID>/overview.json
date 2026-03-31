@@ -1,0 +1,31 @@
+{
+  "DELETE_args": {
+    "description": "Delete the export.", 
+    "type": "object"
+  }, 
+  "GET_args": {
+    "description": "Retrieve export information.", 
+    "properties": {
+      "scope": {
+        "description": "If specified as effective or not specified, all export fields are shown.  If specified as user, only fields with non-default values are shown.", 
+        "enum": [
+          "effective", 
+          "user"
+        ], 
+        "type": "string"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "PUT_args": {
+    "description": "Modify the export. All input fields are optional, but one or more must be supplied.", 
+    "properties": {
+      "force": {
+        "description": "If true, the export will be updated even if that change conflicts with another export.", 
+        "type": "boolean"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource applies the standard collection pattern to individual NFS exports.  EID in the resource path is the export ID."
+}

@@ -1,0 +1,62 @@
+{
+  "additionalProperties": false, 
+  "properties": {
+    "metrics": {
+      "items": {
+        "additionalProperties": false, 
+        "description": "A performance metric.", 
+        "properties": {
+          "datatype": {
+            "description": "The data type of the performance metric.", 
+            "enum": [
+              "integer", 
+              "string"
+            ], 
+            "type": "string"
+          }, 
+          "description": {
+            "description": "Text description of the performance metric.", 
+            "maxLength": 255, 
+            "minLength": 1, 
+            "type": "string"
+          }, 
+          "id": {
+            "description": "Performance metrics that can be used to configure a performance dataset, and performance metrics used by the default system performance dataset.", 
+            "enum": [
+              "groupname", 
+              "local_address", 
+              "path", 
+              "protocol", 
+              "remote_address", 
+              "share_name", 
+              "username", 
+              "zone_name", 
+              "job_type", 
+              "system_name", 
+              "export_id"
+            ], 
+            "type": "string"
+          }, 
+          "system_only": {
+            "description": "A 'system_only' metric is reserved for use by the system. This metric cannot be used to configure a new dataset.", 
+            "type": "boolean"
+          }, 
+          "value_set": {
+            "description": "The set of applicable values for the metric.", 
+            "type": [
+              "integer", 
+              "string", 
+              "array", 
+              "null"
+            ]
+          }
+        }, 
+        "type": "object"
+      }, 
+      "maxItems": 1, 
+      "minItems": 1, 
+      "type": "array"
+    }
+  }, 
+  "type": "object"
+}

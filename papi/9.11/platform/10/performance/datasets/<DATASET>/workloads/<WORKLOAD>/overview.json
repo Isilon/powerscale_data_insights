@@ -1,0 +1,15 @@
+{
+  "DELETE_args": {
+    "description": "Delete the workload.", 
+    "type": "object"
+  }, 
+  "GET_args": {
+    "description": "Retrieve the workload.", 
+    "type": "object"
+  }, 
+  "PUT_args": {
+    "description": "Modify the workload.", 
+    "type": "object"
+  }, 
+  "resource_description": "This resource represents a single \"workload\" selected for the dataset specified in the URI. A workload is a selection of specific values for each metric in its dataset. These values are \"pinned\"; statistics for them will always be collected and available for viewing at /statistics/current?key=node.accounting.workloads.dataset.<dataset-id>, even if they are not among the top resource-consuming combinations of their metrics. For example, a dataset with the metrics \"zone_name\" and \"protocol\" might have a workload with the selection \"zone_name:System\", \"protocol:nfs4\". This configuration means statistics about nfs v4 usage in the System zone are \"pinned\" and will always be collected and available, in addition to statistics about the top resource-consuming zone_name/protocol combinations."
+}

@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false, 
+  "description": "The newly created performance dataset.", 
+  "properties": {
+    "id": {
+      "description": "Unique identifier for the configured dataset.", 
+      "maximum": 4294967295, 
+      "minimum": 0, 
+      "required": true, 
+      "type": "integer"
+    }, 
+    "name": {
+      "description": "The name of the performance dataset. If a name is not specified then a default name is assigned. The default name will be an underscore separated list of the performance metrics and filters used to configure the dataset.", 
+      "maxLength": 255, 
+      "minLength": 1, 
+      "required": true, 
+      "type": "string"
+    }, 
+    "note": {
+      "description": "Additional information about this dataset", 
+      "maxLength": 255, 
+      "minLength": 1, 
+      "required": false, 
+      "type": "string"
+    }, 
+    "statkey": {
+      "description": "Key for use in viewing associated raw statistics under the endpoints /statistics/history and /statistics/current.", 
+      "maxLength": 29, 
+      "minLength": 29, 
+      "required": true, 
+      "type": "string"
+    }, 
+    "stats_summary_uri": {
+      "description": "URI used to view associated summary statistics.", 
+      "maxLength": 255, 
+      "minLength": 1, 
+      "required": true, 
+      "type": "string"
+    }
+  }, 
+  "type": "object"
+}

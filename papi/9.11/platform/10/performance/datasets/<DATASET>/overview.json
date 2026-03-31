@@ -1,0 +1,15 @@
+{
+  "DELETE_args": {
+    "description": "Delete the performance dataset.", 
+    "type": "object"
+  }, 
+  "GET_args": {
+    "description": "Retrieve the performance dataset.", 
+    "type": "object"
+  }, 
+  "PUT_args": {
+    "description": "Modify the name of the performance dataset.", 
+    "type": "object"
+  }, 
+  "resource_description": "This resource represents a single dataset. A dataset is a set of 'metrics' for which performance statistics will be collected. These metrics are aspects of the system whose performance you might be interested in, like \"username\" or \"protocol\". The list of available metrics can be found at the /performance/metrics URI. Creating a new dataset will trigger the collection of new statistics sets that have been configured. For example, when you create a dataset with metrics \"username\" and \"protocol\", OneFS will start collecting statistics associated with all username/protocol combinations. Statistics about the top resource-consuming metrics combinations for a given dataset are available at the URI /statistics/current?key=cluster.performance.dataset.<dataset-id>. You can configure the number of top-level combinations that will be independently tracked with the \"top_n_collection_count\" setting at the /performance/settings URI. You can also pin individual \"workloads\" to select specific instances of the metrics you are particularly interested in, whether or not they are among the top resource-consuming combinations.  See the /performance/datasets/<DATASET>/workloads URI for details."
+}

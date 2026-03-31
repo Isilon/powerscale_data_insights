@@ -1,0 +1,50 @@
+{
+  "DELETE_args": {
+    "description": "Delete all filters associated with the dataset.", 
+    "type": "object"
+  }, 
+  "GET_args": {
+    "description": "List all filters.", 
+    "properties": {
+      "dir": {
+        "description": "The direction of the sort.", 
+        "enum": [
+          "ASC", 
+          "DESC"
+        ], 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "limit": {
+        "description": "Return no more than this many results at once (see resume).", 
+        "maximum": 4294967295, 
+        "minimum": 1, 
+        "type": "integer"
+      }, 
+      "resume": {
+        "description": "Continue returning results from previous call using this token (token should come from the previous call, resume cannot be used with other options).", 
+        "maxLength": 8192, 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "sort": {
+        "description": "The field that will be used for sorting.", 
+        "maxLength": 255, 
+        "minLength": 0, 
+        "type": "string"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "POST_args": {
+    "description": "Create a new filter.", 
+    "properties": {
+      "force": {
+        "description": "For use by support only.", 
+        "type": "boolean"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource represents the collection of \"filters\" selected for the dataset specified in the URI. A filter is a selection of specific values for each metric in its dataset. These values are \"filtered\" such that a workload will not be considered for inclusion in the top metrics combinations of a dataset. For instance, a dataset with no filter axes defined will consider all possible metric combinations within its metrics, whereas a dataset with the metric \"username\" filtered will only consider metric combinations where the username metric matches a configured filter."
+}

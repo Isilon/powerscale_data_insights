@@ -1,0 +1,69 @@
+{
+  "GET_args": {
+    "description": "List all NFS exports.", 
+    "properties": {
+      "check": {
+        "description": "Check for conflicts when listing exports.", 
+        "type": "boolean"
+      }, 
+      "dir": {
+        "description": "The direction of the sort.", 
+        "enum": [
+          "ASC", 
+          "DESC"
+        ], 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "limit": {
+        "description": "Return no more than this many results at once (see resume).", 
+        "maximum": 4294967295, 
+        "minimum": 1, 
+        "type": "integer"
+      }, 
+      "offset": {
+        "description": "The position of the first item returned for a paginated query within the full result set.", 
+        "maximum": 4294967295, 
+        "minimum": 0, 
+        "type": "integer"
+      }, 
+      "resume": {
+        "description": "Continue returning results from previous call using this token (token should come from the previous call, resume cannot be used with other options).", 
+        "maxLength": 8192, 
+        "minLength": 0, 
+        "type": "string"
+      }, 
+      "scope": {
+        "description": "If specified as effective or not specified, all export fields are shown.  If specified as user, only fields with non-default values are shown.", 
+        "enum": [
+          "effective", 
+          "user"
+        ], 
+        "type": "string"
+      }, 
+      "sort": {
+        "description": "The field that will be used for sorting. Default is id.", 
+        "enum": [
+          "id", 
+          "paths", 
+          "description"
+        ], 
+        "maxLength": 255, 
+        "minLength": 0, 
+        "type": "string"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "POST_args": {
+    "description": "Create a new NFS export.", 
+    "properties": {
+      "force": {
+        "description": "If true, the export will be created even if it conflicts with another export.", 
+        "type": "boolean"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource applies the standard collection pattern to NFS exports."
+}

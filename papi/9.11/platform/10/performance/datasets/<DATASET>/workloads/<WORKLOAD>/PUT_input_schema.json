@@ -1,0 +1,14 @@
+{
+  "additionalProperties": false, 
+  "description": "A workload that can be pinned to a dataset for viewing.", 
+  "properties": {
+    "name": {
+      "description": "The name of the workload. User specified.", 
+      "maxLength": 80, 
+      "minLength": 1, 
+      "type": "string"
+    }
+  }, 
+  "required": true, 
+  "type": "object"
+}

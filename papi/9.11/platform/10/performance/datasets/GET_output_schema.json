@@ -1,0 +1,130 @@
+{
+  "additionalProperties": false, 
+  "properties": {
+    "datasets": {
+      "items": {
+        "additionalProperties": false, 
+        "description": "A performance dataset configured to track different sets of performance workloads.", 
+        "properties": {
+          "creation_time": {
+            "description": "Timestamp of when the dataset was created.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }, 
+          "filter_count": {
+            "description": "Number of filters applied to this dataset.", 
+            "maximum": 4294967295, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }, 
+          "filters": {
+            "description": "Filtered metrics for configuring this dataset.", 
+            "items": {
+              "description": "Performance metrics that can be used to configure a performance dataset, and performance metrics used by the default system performance dataset.", 
+              "enum": [
+                "groupname", 
+                "local_address", 
+                "path", 
+                "protocol", 
+                "remote_address", 
+                "share_name", 
+                "username", 
+                "zone_name", 
+                "job_type", 
+                "system_name", 
+                "export_id"
+              ], 
+              "type": "string"
+            }, 
+            "maxItems": 9, 
+            "minItems": 0, 
+            "required": true, 
+            "type": "array"
+          }, 
+          "id": {
+            "description": "Unique identifier for the configured dataset.", 
+            "maximum": 4294967295, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }, 
+          "metrics": {
+            "description": "Performance metrics defining the dataset.", 
+            "items": {
+              "description": "Performance metrics that can be used to configure a performance dataset, and performance metrics used by the default system performance dataset.", 
+              "enum": [
+                "groupname", 
+                "local_address", 
+                "path", 
+                "protocol", 
+                "remote_address", 
+                "share_name", 
+                "username", 
+                "zone_name", 
+                "job_type", 
+                "system_name", 
+                "export_id"
+              ], 
+              "type": "string"
+            }, 
+            "maxItems": 9, 
+            "minItems": 1, 
+            "required": true, 
+            "type": "array"
+          }, 
+          "name": {
+            "description": "The name of the performance dataset. If a name is not specified then a default name is assigned. The default name will be an underscore separated list of the performance metrics and filters used to configure the dataset.", 
+            "maxLength": 255, 
+            "minLength": 1, 
+            "required": true, 
+            "type": "string"
+          }, 
+          "note": {
+            "description": "Additional information about this dataset", 
+            "maxLength": 255, 
+            "minLength": 1, 
+            "required": false, 
+            "type": "string"
+          }, 
+          "statkey": {
+            "description": "Key for use in viewing associated raw statistics under the endpoints /statistics/history and /statistics/current.", 
+            "maxLength": 29, 
+            "minLength": 29, 
+            "required": true, 
+            "type": "string"
+          }, 
+          "workload_count": {
+            "description": "Number of workloads pinned to this dataset.", 
+            "maximum": 4294967295, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }
+        }, 
+        "type": "object"
+      }, 
+      "maxItems": 5, 
+      "minItems": 0, 
+      "type": "array"
+    }, 
+    "resume": {
+      "description": "Provide this token as the 'resume' query argument to continue listing results.", 
+      "maxLength": 8192, 
+      "minLength": 0, 
+      "type": [
+        "string", 
+        "null"
+      ]
+    }, 
+    "total": {
+      "description": "Total number of items available.", 
+      "maximum": 18446744073709551615, 
+      "minimum": 0, 
+      "type": "integer"
+    }
+  }, 
+  "type": "object"
+}

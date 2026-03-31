@@ -1,0 +1,283 @@
+{
+  "additionalProperties": false, 
+  "properties": {
+    "workload": {
+      "items": {
+        "properties": {
+          "bytes_in": {
+            "description": "Count of bytes-in per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "bytes_out": {
+            "description": "Count of bytes-out per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "cpu": {
+            "description": "The number (across all cores) of micro-seconds per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "domain_id": {
+            "description": "The IFS domain of the path which the operation was requested on.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "error": {
+            "description": "Report any errors during id resolution.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "export_id": {
+            "description": "The ID of the NFS export through which the operation was requested.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "number"
+            ]
+          }, 
+          "group_id": {
+            "description": "Group ID of the group that initiated the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "number"
+            ]
+          }, 
+          "group_sid": {
+            "description": "Group SID of the group that initiated the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "groupname": {
+            "description": "The resolved text name of the group that initiated the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "job_type": {
+            "description": "The canonical name for the job followed by phase in brackets, ie. 'AVscan[1]', etc...", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "l2": {
+            "description": "L2 cache hits per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "l3": {
+            "description": "L3 cache hits per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "latency_other": {
+            "description": "Latency on other operations.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "latency_read": {
+            "description": "Latency on disk read operations.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "latency_write": {
+            "description": "Latency on disk write operations.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "local_address": {
+            "description": "The IP address of the host receiving the operation request.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "local_name": {
+            "description": "The resolved text name of the LocalAddr, if resolution can be performed.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "node": {
+            "description": "The node on which the operation was performed or 0 for cluster scoped statistics.", 
+            "maximum": 2147483647, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "ops": {
+            "description": "Operations per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "path": {
+            "description": "The path which the operation was requested on.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "protocol": {
+            "description": "The protocol of the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "reads": {
+            "description": "Disk read operations per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "remote_address": {
+            "description": "The IP address of the host sending the operation request.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "remote_name": {
+            "description": "The resolved text name of the RemoteAddr, if resolution can be performed.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "share_name": {
+            "description": "The name of the SMB share through which the operation was requested.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "system_name": {
+            "description": "The process name, job ID, etc...", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "time": {
+            "description": "Unix Epoch time in seconds that statistic was collected.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }, 
+          "user_id": {
+            "description": "User ID of the user who initiated the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "number"
+            ]
+          }, 
+          "user_sid": {
+            "description": "User SID of the user who initiated the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "username": {
+            "description": "The resolved text name of the user who initiated the operation.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "workload_id": {
+            "description": "ID of the workload (Pinned workloads only).", 
+            "required": false, 
+            "type": [
+              "null", 
+              "integer"
+            ]
+          }, 
+          "workload_type": {
+            "description": "The type of workload output.", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }, 
+          "writes": {
+            "description": "Disk write operations per second.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "number"
+          }, 
+          "zone_id": {
+            "description": "Zone ID", 
+            "required": false, 
+            "type": [
+              "null", 
+              "number"
+            ]
+          }, 
+          "zone_name": {
+            "description": "The resolved text zone name", 
+            "required": false, 
+            "type": [
+              "null", 
+              "string"
+            ]
+          }
+        }, 
+        "type": "object"
+      }, 
+      "maxItems": 18446744073709551615, 
+      "minItems": 0, 
+      "type": "array"
+    }
+  }, 
+  "type": "object"
+}

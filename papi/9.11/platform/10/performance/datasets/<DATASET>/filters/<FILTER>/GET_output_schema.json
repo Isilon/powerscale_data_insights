@@ -1,0 +1,211 @@
+{
+  "additionalProperties": false, 
+  "properties": {
+    "filters": {
+      "items": {
+        "additionalProperties": false, 
+        "description": "Once a dataset is configured using metrics, a filter can be specified to produce a list of top workloads based on the remaining non-filtered metrics for those workloads matching the filtered metrics.", 
+        "properties": {
+          "creation_time": {
+            "description": "Timestamp of when the filter was applied.", 
+            "maximum": 18446744073709551615, 
+            "minimum": 0, 
+            "type": "integer"
+          }, 
+          "dataset_id": {
+            "description": "Unique identifier of the associated dataset.", 
+            "maximum": 4294967295, 
+            "minimum": 0, 
+            "type": "integer"
+          }, 
+          "error": {
+            "description": "If this field is present, then there was an error fetching the filter configuration.", 
+            "maxLength": 255, 
+            "minLength": 1, 
+            "type": "string"
+          }, 
+          "id": {
+            "description": "The filter ID. Unique and automatically assigned.", 
+            "maximum": 4294967295, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }, 
+          "metric_values": {
+            "description": "Performance metric values that can be used to pin workloads and apply filters, and performance metric values that are used to display information about the system performance dataset.", 
+            "properties": {
+              "export_id": {
+                "type": [
+                  {
+                    "description": "NFS export ID", 
+                    "maximum": 4294967295, 
+                    "minimum": 0, 
+                    "type": "number"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "groupname": {
+                "type": [
+                  {
+                    "description": "groupname", 
+                    "maxLength": 255, 
+                    "minLength": 1, 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "job_type": {
+                "type": [
+                  {
+                    "description": "The job type.", 
+                    "maxLength": 255, 
+                    "minLength": 1, 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "local_address": {
+                "type": [
+                  {
+                    "description": "Local IPv4, IPv6 address, address range, or subnet.", 
+                    "maxLength": 91, 
+                    "minLength": 1, 
+                    "pattern": "^[0-9a-fA-F:./-]*$", 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "path": {
+                "type": [
+                  {
+                    "description": "Path of tracked directory", 
+                    "type": [
+                      {
+                        "maxLength": 4096, 
+                        "minLength": 4, 
+                        "pattern": "^/ifs$|^/ifs/", 
+                        "type": "string"
+                      }
+                    ]
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "protocol": {
+                "type": [
+                  {
+                    "description": "The protocol used for the request", 
+                    "enum": [
+                      "smb1", 
+                      "smb2", 
+                      "nfs3", 
+                      "nfs4", 
+                      "s3"
+                    ], 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "remote_address": {
+                "type": [
+                  {
+                    "description": "Client IPv4 or IPv6 address, address range, or subnet.", 
+                    "maxLength": 91, 
+                    "minLength": 1, 
+                    "pattern": "^[0-9a-fA-F:./-]*$", 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "share_name": {
+                "type": [
+                  {
+                    "description": "SMB share name", 
+                    "maxLength": 320, 
+                    "minLength": 1, 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "system_name": {
+                "type": [
+                  {
+                    "description": "The system name", 
+                    "maxLength": 255, 
+                    "minLength": 1, 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "username": {
+                "type": [
+                  {
+                    "description": "username", 
+                    "maxLength": 255, 
+                    "minLength": 1, 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }, 
+              "zone_name": {
+                "type": [
+                  {
+                    "description": "The zone name", 
+                    "maxLength": 255, 
+                    "minLength": 1, 
+                    "type": "string"
+                  }, 
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }, 
+            "type": "object"
+          }, 
+          "name": {
+            "description": "The name of the filter. User specified.", 
+            "maxLength": 80, 
+            "minLength": 1, 
+            "type": "string"
+          }
+        }, 
+        "required": true, 
+        "type": "object"
+      }, 
+      "maxItems": 1, 
+      "minItems": 1, 
+      "type": "array"
+    }
+  }, 
+  "type": "object"
+}

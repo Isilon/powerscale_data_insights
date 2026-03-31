@@ -1,0 +1,14 @@
+{
+  "additionalProperties": false, 
+  "description": "Once a dataset is configured using metrics, a filter can be specified to produce a list of top workloads based on the remaining non-filtered metrics for those workloads matching the filtered metrics.", 
+  "properties": {
+    "name": {
+      "description": "The name of the filter. User specified.", 
+      "maxLength": 80, 
+      "minLength": 1, 
+      "type": "string"
+    }
+  }, 
+  "required": true, 
+  "type": "object"
+}

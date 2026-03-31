@@ -1,0 +1,118 @@
+Resource URL: /platform/<<version=10>>/performance/metrics/<METRIC>
+()
+    Overview: Review the metric used for defining a performance dataset.
+()
+     Methods: GET
+
+********************************************************************************
+
+Method GET: View a single performance metric.
+()
+URL: GET /platform/<<version=10>>/performance/metrics/<METRIC>
+
+There are no query arguments for this method.
+
+GET response body schema:
+{
+  "type": [
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "description": "A list of errors that may be returned.", 
+      "properties": {
+        "errors": {
+          "minItems": 1, 
+          "items": {
+            "additionalProperties": false, 
+            "type": "object", 
+            "description": "An object describing a single error.", 
+            "properties": {
+              "field": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The field with the error if applicable.", 
+                "maxLength": 8192
+              }, 
+              "message": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error message.", 
+                "maxLength": 8192
+              }, 
+              "code": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error code.", 
+                "maxLength": 8192
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 65535
+        }
+      }
+    }, 
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "properties": {
+        "metrics": {
+          "minItems": 1, 
+          "items": {
+            "additionalProperties": false, 
+            "type": "object", 
+            "description": "A performance metric.", 
+            "properties": {
+              "datatype": {
+                "enum": [
+                  "integer", 
+                  "string"
+                ], 
+                "type": "string", 
+                "description": "The data type of the performance metric."
+              }, 
+              "value_set": {
+                "type": [
+                  "integer", 
+                  "string", 
+                  "array", 
+                  "null"
+                ], 
+                "description": "The set of applicable values for the metric."
+              }, 
+              "system_only": {
+                "type": "boolean", 
+                "description": "A 'system_only' metric is reserved for use by the system. This metric cannot be used to configure a new dataset."
+              }, 
+              "description": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "Text description of the performance metric.", 
+                "maxLength": 255
+              }, 
+              "id": {
+                "enum": [
+                  "groupname", 
+                  "local_address", 
+                  "path", 
+                  "protocol", 
+                  "remote_address", 
+                  "share_name", 
+                  "username", 
+                  "zone_name", 
+                  "job_type", 
+                  "system_name", 
+                  "export_id"
+                ], 
+                "type": "string", 
+                "description": "Performance metrics that can be used to configure a performance dataset, and performance metrics used by the default system performance dataset."
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 1
+        }
+      }
+    }
+  ]
+}

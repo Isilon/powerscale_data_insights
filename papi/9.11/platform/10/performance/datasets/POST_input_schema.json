@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false, 
+  "description": "A performance dataset configured to track different sets of performance workloads.", 
+  "properties": {
+    "filters": {
+      "description": "Filtered metrics for configuring this dataset.", 
+      "items": {
+        "description": "Performance metrics that can be used to configure a performance dataset.", 
+        "enum": [
+          "groupname", 
+          "local_address", 
+          "path", 
+          "protocol", 
+          "remote_address", 
+          "share_name", 
+          "username", 
+          "zone_name", 
+          "export_id"
+        ], 
+        "type": "string"
+      }, 
+      "maxItems": 9, 
+      "minItems": 0, 
+      "type": "array"
+    }, 
+    "metrics": {
+      "description": "Performance metrics defining the dataset.", 
+      "items": {
+        "description": "Performance metrics that can be used to configure a performance dataset.", 
+        "enum": [
+          "groupname", 
+          "local_address", 
+          "path", 
+          "protocol", 
+          "remote_address", 
+          "share_name", 
+          "username", 
+          "zone_name", 
+          "export_id"
+        ], 
+        "type": "string"
+      }, 
+      "maxItems": 9, 
+      "minItems": 1, 
+      "required": true, 
+      "type": "array"
+    }, 
+    "name": {
+      "description": "The name of the performance dataset. If a name is not specified then a default name is assigned. The default name will be an underscore separated list of the performance metrics and filters used to configure the dataset.", 
+      "maxLength": 255, 
+      "minLength": 1, 
+      "type": "string"
+    }
+  }, 
+  "type": "object"
+}

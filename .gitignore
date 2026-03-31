@@ -1,0 +1,31 @@
+# Binaries
+bin/
+/gostats
+/goppstats
+/dashgen
+/goppstats-dash-gen
+*.exe
+
+# Go
+go.work.sum
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files (may contain credentials)
+idic.toml
+goppstats.toml
+
+# Test output
+test-dash.json

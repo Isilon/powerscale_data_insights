@@ -1,0 +1,662 @@
+{
+  "description": "NFS export configuration values.", 
+  "properties": {
+    "all_dirs": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, all directories under the specified paths are mountable.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "block_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The block size returned by the NFS STATFS procedure.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "can_set_time": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, the client may  set file  times using the NFS SETATTR request.  This  option is advisory and the server always behaves as if it is true.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "clients": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Clients that have access to the export.", 
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }
+      ]
+    }, 
+    "commit_asynchronous": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, allows NFS  commit  requests to  execute asynchronously.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "description": {
+      "description": "A human readable description of the export.", 
+      "type": "string"
+    }, 
+    "directory_transfer_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The preferred size for directory read operations.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "encoding": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The character encoding of clients connecting to the export.", 
+          "type": "string"
+        }
+      ]
+    }, 
+    "map_all": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The user and groups that non-root clients are mapped to.", 
+          "type": [
+            {
+              "description": "User and group mapping.", 
+              "properties": {
+                "groups": {
+                  "items": {
+                    "type": "string"
+                  }, 
+                  "type": "array"
+                }, 
+                "user": {
+                  "description": "User name.", 
+                  "type": "string"
+                }
+              }, 
+              "type": "object"
+            }
+          ]
+        }
+      ]
+    }, 
+    "map_full": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, user mappings queries the OneFS user database.  If false, only local authentication is queried.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "map_lookup_uid": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, incoming UIDs are mapped to users in the OneFS user database.  If false, incoming UIDs are applied directly to file operations.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "map_retry": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Determines whether lookups for users specified in map_all or map_root are retried if the look fails.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "map_root": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The user and groups that root clients are mapped to.", 
+          "type": [
+            {
+              "description": "User and group mapping.", 
+              "properties": {
+                "groups": {
+                  "items": {
+                    "type": "string"
+                  }, 
+                  "type": "array"
+                }, 
+                "user": {
+                  "description": "User name.", 
+                  "type": "string"
+                }
+              }, 
+              "type": "object"
+            }
+          ]
+        }
+      ]
+    }, 
+    "max_file_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The maximum file size in the export.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "paths": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The paths under /ifs that are exported.", 
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }
+      ]
+    }, 
+    "read_only": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, the export is read-only.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "read_only_clients": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Clients that have read only access to the export.", 
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }
+      ]
+    }, 
+    "read_transfer_max_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The maximum buffer size that clients should use on NFS read requests.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "read_transfer_multiple": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The preferred multiple size for NFS read requests.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "read_transfer_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The optimal size for NFS read requests.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "read_write_clients": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Clients that have read and write access to the export, even if the export is read-only.", 
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }
+      ]
+    }, 
+    "readdirplus": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, readdirplus requests are enabled.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "readdirplus_prefetch": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Sets the number of directory entries that will be prefetched when a readdirplus request is processed.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "return_32bit_file_ids": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Limits the size of file identifiers returned by NFSv3+ to 32-bit values (may require remount).", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "root_clients": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Clients that have root access to the export.", 
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }
+      ]
+    }, 
+    "security_flavors": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The authentication flavors that are supported for this export.", 
+          "items": {
+            "description": "The security type.", 
+            "enum": [
+              "unix", 
+              "krb5", 
+              "krb5i", 
+              "krb5p"
+            ], 
+            "type": "string"
+          }, 
+          "type": "array"
+        }
+      ]
+    }, 
+    "setattr_asynchronous": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, allows setattr operations to execute asynchronously.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "snapshot": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "Use this snapshot for all mounts.", 
+          "type": "string"
+        }
+      ]
+    }, 
+    "symlinks": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "If true, paths reachable by symlinks are exported.", 
+          "type": "boolean"
+        }
+      ]
+    }, 
+    "time_delta": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The resolution of all time values that are returned to clients.", 
+          "type": "number"
+        }
+      ]
+    }, 
+    "write_datasync_action": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The action to be taken when an NFSv3+ datasync write is requested.", 
+          "type": [
+            {
+              "description": "The synchronization type.", 
+              "enum": [
+                "DATASYNC", 
+                "FILESYNC", 
+                "UNSTABLE"
+              ], 
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }, 
+    "write_datasync_reply": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The stability disposition returned when an NFSv3+ datasync write is processed.", 
+          "type": [
+            {
+              "description": "The synchronization type.", 
+              "enum": [
+                "DATASYNC", 
+                "FILESYNC", 
+                "UNSTABLE"
+              ], 
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }, 
+    "write_filesync_action": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The action to be taken when an NFSv3+ filesync write is requested.", 
+          "type": [
+            {
+              "description": "The synchronization type.", 
+              "enum": [
+                "DATASYNC", 
+                "FILESYNC", 
+                "UNSTABLE"
+              ], 
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }, 
+    "write_filesync_reply": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The stability disposition returned when an NFSv3+ filesync write is processed.", 
+          "type": [
+            {
+              "description": "The synchronization type.", 
+              "enum": [
+                "DATASYNC", 
+                "FILESYNC", 
+                "UNSTABLE"
+              ], 
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }, 
+    "write_transfer_max_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The maximum buffer size that clients should use on NFS write requests.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "write_transfer_multiple": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The preferred multiple size for NFS write requests.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "write_transfer_size": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The optimal size for NFS read requests.  This option is advisory.", 
+          "type": "integer"
+        }
+      ]
+    }, 
+    "write_unstable_action": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The action to be taken when an NFSv3+ unstable write is requested.", 
+          "type": [
+            {
+              "description": "The synchronization type.", 
+              "enum": [
+                "DATASYNC", 
+                "FILESYNC", 
+                "UNSTABLE"
+              ], 
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }, 
+    "write_unstable_reply": {
+      "type": [
+        {
+          "enum": [
+            "@DEFAULT"
+          ], 
+          "type": "string"
+        }, 
+        {
+          "description": "The stability disposition returned when an NFSv3+ unstable write is processed.", 
+          "type": [
+            {
+              "description": "The synchronization type.", 
+              "enum": [
+                "DATASYNC", 
+                "FILESYNC", 
+                "UNSTABLE"
+              ], 
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }
+  }, 
+  "type": "object", 
+  "x-privilege": "ISI_PRIV_NFS_SETTINGS_EXPORT"
+}

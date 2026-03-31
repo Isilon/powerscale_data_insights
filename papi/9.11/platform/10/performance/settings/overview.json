@@ -1,0 +1,17 @@
+{
+  "GET_args": {
+    "description": "List all performance settings.", 
+    "type": "object"
+  }, 
+  "PUT_args": {
+    "description": "Configure performance settings.", 
+    "properties": {
+      "force": {
+        "description": "Allow modification of settings outside of recommended limits", 
+        "type": "boolean"
+      }
+    }, 
+    "type": "object"
+  }, 
+  "resource_description": "This resource shows the global settings for performance resource accounting."
+}

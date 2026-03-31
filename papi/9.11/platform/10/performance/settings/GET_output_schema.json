@@ -1,0 +1,55 @@
+{
+  "additionalProperties": false, 
+  "properties": {
+    "settings": {
+      "additionalProperties": false, 
+      "description": "View and modify the configuration for performance statistic collection.", 
+      "properties": {
+        "max_dataset_count": {
+          "description": "The maximum number of datasets that can be configured on the system.", 
+          "maximum": 4, 
+          "minimum": 4, 
+          "required": true, 
+          "type": "integer"
+        }, 
+        "max_filter_count": {
+          "description": "The maximum number of filters that can be applied to a configured performance dataset.", 
+          "maximum": 4294967295, 
+          "minimum": 0, 
+          "required": true, 
+          "type": "integer"
+        }, 
+        "max_stat_size": {
+          "description": "The maximum size in bytes of a single performance dataset sample.", 
+          "maximum": 4294967295, 
+          "minimum": 0, 
+          "required": true, 
+          "type": "integer"
+        }, 
+        "max_top_n_collection_count": {
+          "description": "The maximum valid value for the 'top_n_collection_count' setting.", 
+          "maximum": 4294967295, 
+          "minimum": 0, 
+          "required": true, 
+          "type": "integer"
+        }, 
+        "max_workload_count": {
+          "description": "The maximum number of workloads that can be pinned to a configured performance dataset.", 
+          "maximum": 4294967295, 
+          "minimum": 0, 
+          "required": true, 
+          "type": "integer"
+        }, 
+        "top_n_collection_count": {
+          "description": "The number of highest resource-consuming workloads tracked and collected by the system per configured performance dataset. The number of workloads pinned to a configured performance dataset does not count towards this value.", 
+          "maximum": 4294967295, 
+          "minimum": 0, 
+          "required": true, 
+          "type": "integer"
+        }
+      }, 
+      "type": "object"
+    }
+  }, 
+  "type": "object"
+}

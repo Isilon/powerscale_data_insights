@@ -1,0 +1,316 @@
+Resource URL: /platform/<<version=10>>/performance/datasets/<DATASET>/workloads/<WORKLOAD>
+()
+    Overview: This resource represents a single "workload" selected for the
+              dataset specified in the URI. A workload is a selection of
+              specific values for each metric in its dataset. These values are
+              "pinned"; statistics for them will always be collected and
+              available for viewing at
+              /statistics/current?key=node.accounting.workloads.dataset.<dataset-id>,
+              even if they are not among the top resource-consuming
+              combinations of their metrics. For example, a dataset with the
+              metrics "zone_name" and "protocol" might have a workload with the
+              selection "zone_name:System", "protocol:nfs4". This configuration
+              means statistics about nfs v4 usage in the System zone are
+              "pinned" and will always be collected and available, in addition
+              to statistics about the top resource-consuming zone_name/protocol
+              combinations.
+()
+     Methods: GET, PUT, DELETE
+
+********************************************************************************
+
+Method GET: Retrieve the workload.
+()
+URL: GET /platform/<<version=10>>/performance/datasets/<DATASET>/workloads/<WORKLOAD>
+
+There are no query arguments for this method.
+
+GET response body schema:
+{
+  "type": [
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "description": "A list of errors that may be returned.", 
+      "properties": {
+        "errors": {
+          "minItems": 1, 
+          "items": {
+            "additionalProperties": false, 
+            "type": "object", 
+            "description": "An object describing a single error.", 
+            "properties": {
+              "field": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The field with the error if applicable.", 
+                "maxLength": 8192
+              }, 
+              "message": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error message.", 
+                "maxLength": 8192
+              }, 
+              "code": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error code.", 
+                "maxLength": 8192
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 65535
+        }
+      }
+    }, 
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "properties": {
+        "workloads": {
+          "minItems": 1, 
+          "items": {
+            "additionalProperties": false, 
+            "required": true, 
+            "type": "object", 
+            "description": "A workload that can be pinned to a dataset for viewing.", 
+            "properties": {
+              "metric_values": {
+                "type": "object", 
+                "description": "Performance metric values that can be used to pin workloads and apply filters, and performance metric values that are used to display information about the system performance dataset.", 
+                "properties": {
+                  "system_name": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "description": "The system name", 
+                        "maxLength": 255
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "username": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "description": "username", 
+                        "maxLength": 255
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "protocol": {
+                    "type": [
+                      {
+                        "enum": [
+                          "smb1", 
+                          "smb2", 
+                          "nfs3", 
+                          "nfs4", 
+                          "s3"
+                        ], 
+                        "type": "string", 
+                        "description": "The protocol used for the request"
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "share_name": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "description": "SMB share name", 
+                        "maxLength": 320
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "job_type": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "description": "The job type.", 
+                        "maxLength": 255
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "remote_address": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "pattern": "^[0-9a-fA-F:./-]*$", 
+                        "description": "Client IPv4 or IPv6 address, address range, or subnet.", 
+                        "maxLength": 91
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "groupname": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "description": "groupname", 
+                        "maxLength": 255
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "local_address": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "pattern": "^[0-9a-fA-F:./-]*$", 
+                        "description": "Local IPv4, IPv6 address, address range, or subnet.", 
+                        "maxLength": 91
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "zone_name": {
+                    "type": [
+                      {
+                        "minLength": 1, 
+                        "type": "string", 
+                        "description": "The zone name", 
+                        "maxLength": 255
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "path": {
+                    "type": [
+                      {
+                        "type": [
+                          {
+                            "minLength": 4, 
+                            "type": "string", 
+                            "pattern": "^/ifs$|^/ifs/", 
+                            "maxLength": 4096
+                          }
+                        ], 
+                        "description": "Path of tracked directory"
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }, 
+                  "export_id": {
+                    "type": [
+                      {
+                        "minimum": 0, 
+                        "type": "number", 
+                        "description": "NFS export ID", 
+                        "maximum": 4294967295
+                      }, 
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }, 
+              "name": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The name of the workload. User specified.", 
+                "maxLength": 80
+              }, 
+              "creation_time": {
+                "minimum": 0, 
+                "type": "integer", 
+                "description": "Timestamp of when the workload was pinned.", 
+                "maximum": 18446744073709551615
+              }, 
+              "error": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "If this field is present, then there was an error fetching the workload configuration.", 
+                "maxLength": 255
+              }, 
+              "dataset_id": {
+                "minimum": 0, 
+                "type": "integer", 
+                "description": "Unique identifier of the associated dataset.", 
+                "maximum": 4294967295
+              }, 
+              "id": {
+                "required": true, 
+                "minimum": 0, 
+                "type": "integer", 
+                "description": "The workload ID. Unique and automatically assigned.", 
+                "maximum": 4294967295
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 1
+        }
+      }
+    }
+  ]
+}
+
+********************************************************************************
+
+Method PUT: Modify the workload.
+()
+URL: PUT /platform/<<version=10>>/performance/datasets/<DATASET>/workloads/<WORKLOAD>
+
+There are no query arguments for this method.
+
+PUT request body schema:
+{
+  "additionalProperties": false, 
+  "required": true, 
+  "type": "object", 
+  "description": "A workload that can be pinned to a dataset for viewing.", 
+  "properties": {
+    "name": {
+      "minLength": 1, 
+      "type": "string", 
+      "description": "The name of the workload. User specified.", 
+      "maxLength": 80
+    }
+  }
+}
+
+There is no JSON response body for this method.
+
+********************************************************************************
+
+Method DELETE: Delete the workload.
+()
+URL: DELETE /platform/<<version=10>>/performance/datasets/<DATASET>/workloads/<WORKLOAD>
+
+There are no query arguments for this method.
+
+There is no JSON response body for this method.

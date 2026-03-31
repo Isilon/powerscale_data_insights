@@ -1,0 +1,162 @@
+Resource URL: /platform/<<version=10>>/performance/settings
+()
+    Overview: This resource shows the global settings for performance resource
+              accounting.
+()
+     Methods: GET, PUT
+
+********************************************************************************
+
+Method GET: List all performance settings.
+()
+URL: GET /platform/<<version=10>>/performance/settings
+
+There are no query arguments for this method.
+
+GET response body schema:
+{
+  "type": [
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "description": "A list of errors that may be returned.", 
+      "properties": {
+        "errors": {
+          "minItems": 1, 
+          "items": {
+            "additionalProperties": false, 
+            "type": "object", 
+            "description": "An object describing a single error.", 
+            "properties": {
+              "field": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The field with the error if applicable.", 
+                "maxLength": 8192
+              }, 
+              "message": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error message.", 
+                "maxLength": 8192
+              }, 
+              "code": {
+                "minLength": 1, 
+                "type": "string", 
+                "description": "The error code.", 
+                "maxLength": 8192
+              }
+            }
+          }, 
+          "type": "array", 
+          "maxItems": 65535
+        }
+      }
+    }, 
+    {
+      "additionalProperties": false, 
+      "type": "object", 
+      "properties": {
+        "settings": {
+          "additionalProperties": false, 
+          "type": "object", 
+          "description": "View and modify the configuration for performance statistic collection.", 
+          "properties": {
+            "max_dataset_count": {
+              "required": true, 
+              "minimum": 4, 
+              "type": "integer", 
+              "description": "The maximum number of datasets that can be configured on the system.", 
+              "maximum": 4
+            }, 
+            "max_workload_count": {
+              "required": true, 
+              "minimum": 0, 
+              "type": "integer", 
+              "description": "The maximum number of workloads that can be pinned to a configured performance dataset.", 
+              "maximum": 4294967295
+            }, 
+            "max_top_n_collection_count": {
+              "required": true, 
+              "minimum": 0, 
+              "type": "integer", 
+              "description": "The maximum valid value for the 'top_n_collection_count' setting.", 
+              "maximum": 4294967295
+            }, 
+            "max_filter_count": {
+              "required": true, 
+              "minimum": 0, 
+              "type": "integer", 
+              "description": "The maximum number of filters that can be applied to a configured performance dataset.", 
+              "maximum": 4294967295
+            }, 
+            "max_stat_size": {
+              "required": true, 
+              "minimum": 0, 
+              "type": "integer", 
+              "description": "The maximum size in bytes of a single performance dataset sample.", 
+              "maximum": 4294967295
+            }, 
+            "top_n_collection_count": {
+              "required": true, 
+              "minimum": 0, 
+              "type": "integer", 
+              "description": "The number of highest resource-consuming workloads tracked and collected by the system per configured performance dataset. The number of workloads pinned to a configured performance dataset does not count towards this value.", 
+              "maximum": 4294967295
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+
+********************************************************************************
+
+Method PUT: Configure performance settings.
+()
+URL: PUT /platform/<<version=10>>/performance/settings
+
+Query arguments:
+force=<boolean> Allow modification of settings outside of recommended limits
+
+PUT request body schema:
+{
+  "additionalProperties": false, 
+  "type": "object", 
+  "description": "View and modify the configuration for performance statistic collection.", 
+  "properties": {
+    "max_workload_count": {
+      "minimum": 0, 
+      "type": "integer", 
+      "description": "The maximum number of workloads that can be pinned to a configured performance dataset.", 
+      "maximum": 4294967295
+    }, 
+    "top_n_collection_count": {
+      "minimum": 0, 
+      "type": "integer", 
+      "description": "The number of highest resource-consuming workloads tracked and collected by the system per configured performance dataset. The number of workloads pinned to a configured performance dataset does not count towards this value.", 
+      "maximum": 4294967295
+    }, 
+    "max_stat_size": {
+      "minimum": 0, 
+      "type": "integer", 
+      "description": "The maximum size in bytes of a single performance dataset sample.", 
+      "maximum": 4294967295
+    }, 
+    "max_top_n_collection_count": {
+      "minimum": 0, 
+      "type": "integer", 
+      "description": "The maximum valid value for the 'top_n_collection_count' setting.", 
+      "maximum": 4294967295
+    }, 
+    "max_filter_count": {
+      "minimum": 0, 
+      "type": "integer", 
+      "description": "The maximum number of filters that can be applied to a configured performance dataset.", 
+      "maximum": 4294967295
+    }
+  }
+}
+
+There is no JSON response body for this method.

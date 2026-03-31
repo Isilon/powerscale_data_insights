@@ -1,0 +1,50 @@
+{
+  "type": [
+    {
+      "items": {
+        "additionalProperties": false, 
+        "description": "The newly pinned performance workload.", 
+        "properties": {
+          "id": {
+            "description": "The workload ID. Unique and automatically assigned.", 
+            "maximum": 4294967295, 
+            "minimum": 0, 
+            "required": true, 
+            "type": "integer"
+          }, 
+          "name": {
+            "description": "The name of the workload. User specified.", 
+            "maxLength": 80, 
+            "minLength": 1, 
+            "type": "string"
+          }
+        }, 
+        "type": "object"
+      }, 
+      "maxItems": 4294967295, 
+      "minItems": 1, 
+      "required": true, 
+      "type": "array"
+    }, 
+    {
+      "additionalProperties": false, 
+      "description": "The newly pinned performance workload.", 
+      "properties": {
+        "id": {
+          "description": "The workload ID. Unique and automatically assigned.", 
+          "maximum": 4294967295, 
+          "minimum": 0, 
+          "required": true, 
+          "type": "integer"
+        }, 
+        "name": {
+          "description": "The name of the workload. User specified.", 
+          "maxLength": 80, 
+          "minLength": 1, 
+          "type": "string"
+        }
+      }, 
+      "type": "object"
+    }
+  ]
+}

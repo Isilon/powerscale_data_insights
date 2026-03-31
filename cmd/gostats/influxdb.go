@@ -1,0 +1,96 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"time"
+
+	client "github.com/influxdata/influxdb1-client/v2"
+)
+
+// InfluxDBSink defines the data to allow us talk to an InfluxDB database
+type InfluxDBSink struct {
+	cluster  string
+	client   client.Client
+	bpConfig client.BatchPointsConfig
+}
+
+// GetInfluxDBWriter returns an InfluxDB DBWriter
+func GetInfluxDBWriter() DBWriter {
+	return &InfluxDBSink{}
+}
+
+// Init initializes an InfluxDBSink so that points can be written
+func (s *InfluxDBSink) Init(_ context.Context, cluster string, config *tomlConfig, _ int, _ map[string]statDetail) error {
+	s.cluster = cluster
+	var username, password string
+	var err error
+	ic := config.InfluxDB
+	scheme := "http"
+	if ic.UseSSL {
+		scheme = "https"
+	}
+	url := scheme + "://" + ic.Host + ":" + ic.Port
+
+	s.bpConfig = client.BatchPointsConfig{
+		Database:  ic.Database,
+		Precision: "s",
+	}
+
+	if ic.Authenticated {
+		username = ic.Username
+		password = ic.Password
+		password, err = secretFromEnv(password)
+		if err != nil {
+			return fmt.Errorf("unable to retrieve InfluxDB password from environment: %w", err)
+		}
+	}
+
+	dbClient, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:               url,
+		Username:           username,
+		Password:           password,
+		InsecureSkipVerify: ic.InsecureSkipVerify,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create InfluxDB client: %w", err)
+	}
+	// ping the database to ensure we can connect
+	responseTime, response, err := dbClient.Ping(30 * time.Second)
+	if err != nil {
+		return fmt.Errorf("failed to ping InfluxDB: %w", err)
+	}
+	log.Info("successfully connected to InfluxDB", "response", response, "response_time", responseTime)
+	s.client = dbClient
+	return nil
+}
+
+// WritePoints writes a batch of points to InfluxDB
+func (s *InfluxDBSink) WritePoints(_ context.Context, points []Point) error {
+	bp, err := client.NewBatchPoints(s.bpConfig)
+	if err != nil {
+		return fmt.Errorf("unable to create InfluxDB batch points: %w", err)
+	}
+	for _, point := range points {
+		var pts []*client.Point
+		for i, f := range point.fields {
+			var pt *client.Point
+			pt, err = client.NewPoint(point.name, point.tags[i], f, time.Unix(point.time, 0).UTC())
+			if err != nil {
+				log.Warn("failed to create point", slog.String("measurement", point.name))
+				continue
+			}
+			pts = append(pts, pt)
+		}
+		if len(pts) > 0 {
+			bp.AddPoints(pts)
+		}
+	}
+	// write the batch
+	err = s.client.Write(bp)
+	if err != nil {
+		return fmt.Errorf("failed to write batch of points: %w", err)
+	}
+	return nil
+}

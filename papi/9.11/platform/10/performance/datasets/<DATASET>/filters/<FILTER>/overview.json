@@ -1,0 +1,15 @@
+{
+  "DELETE_args": {
+    "description": "Delete the filter.", 
+    "type": "object"
+  }, 
+  "GET_args": {
+    "description": "Retrieve the filter.", 
+    "type": "object"
+  }, 
+  "PUT_args": {
+    "description": "Modify the filter.", 
+    "type": "object"
+  }, 
+  "resource_description": "This resource represents a single \"filter\" selected for the dataset specified in the URI. A filter is a selection of specific values for each metric in its dataset. These values are \"filtered\" such that a workload will not be considered for inclusion in the top metrics combinations of a dataset. For instance, a dataset with no filter axes defined will consider all possible metric combinations within its metrics, whereas a dataset with the metric \"username\" filtered will only consider metric combinations where the username metric matches a configured filter."
+}
