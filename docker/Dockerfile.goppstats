@@ -1,0 +1,32 @@
+# Dockerfile.goppstats — PowerScale Data Insights goppstats collector
+#
+# Multi-stage build producing a minimal image (~15-20MB).
+#
+# Build:
+#   docker build -f docker/Dockerfile.goppstats -t ghcr.io/isilon/pdi-goppstats .
+#
+# Run:
+#   docker run --rm -v /path/to/goppstats.toml:/etc/goppstats/goppstats.toml \
+#       ghcr.io/isilon/pdi-goppstats -config-file /etc/goppstats/goppstats.toml
+
+# ---- Builder stage ----
+FROM golang:1.26-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /goppstats ./cmd/goppstats/
+
+# ---- Runtime stage ----
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=builder /goppstats /usr/local/bin/goppstats
+
+ENTRYPOINT ["goppstats"]
+CMD ["-config-file", "/etc/goppstats/goppstats.toml"]

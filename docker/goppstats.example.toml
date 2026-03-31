@@ -1,0 +1,151 @@
+[global]
+# Config file version
+# mandatory field
+# This field ties the config file syntax/format back to the collector version.
+# This allows the collector to flag breaking changes where the config file needs to be updated.
+# string optionally starting with "v"/"V" e.g., "v0.10", or "0.10"
+version = "v0.29"
+
+# Pluggable back end support
+# Supported back ends are "influxdb", "influxdbv2", "prometheus" and "discard"
+# Default configuration uses InfluxDB (v1)
+stats_processor = "influxdb"
+
+# Maximum number of retries in case of errors during write to stat_processor
+# Default is 8 retries. Uncomment the following line to retry forever
+# stats_processor_max_retries = 0
+
+# The stats_processor_retry_interval parameter provides the ability to override the
+# minimum interval that the daemon will retry in case writing to the stats_processor fails.
+# Default is 5 second. Uncomment the following line to start with a 1 second interval.
+# stats_processor_retry_interval = 1
+
+# preserve case of cluster names to lowercase, defaults to false.
+# preserve_case = true
+
+# NFS export id -> export path lookup
+# If set to true, the API user must have readonly ISI_PRIV_NFS privilege
+lookup_export_ids = false
+
+# Maximum number of retries for http requests (both data and auth)
+# Default is 8 retries. Uncomment the following line to retry forever
+# max_retries = 0
+
+# The min_update_interval_override param provides ability to override the
+# minimum interval that the daemon will query for a set of stats. The purpose
+# of the minimum interval, which defaults to 30 seconds, is to prevent
+# the daemon's queries from putting too much stress on the cluster.
+# The default value is 30 seconds.
+# min_update_interval_override = 30
+
+############################ End of global section ############################
+
+################################ Logging ######################################
+[logging]
+# In a container, log to stdout so the container runtime captures the output.
+# Set logfile to write to a file as well (e.g. for bare-metal deployments).
+# logfile = "goppstats.log"
+log_to_stdout = true
+
+# log_level overrides the -loglevel flag default (NOTICE).
+# Levels: CRITICAL, ERROR, WARNING, NOTICE, INFO, DEBUG, TRACE
+# log_level = "NOTICE"
+
+# log_file_format controls the format of the log file: "text" (default) or "json"
+# Use json for log aggregation pipelines.
+# log_file_format = "text"
+
+############################ End of logging section ###########################
+
+############################ Back end configuration ###########################
+# Influxdb configuration
+[influxdb]
+# "influxdb" is the Docker Compose service name; use "localhost" outside Docker.
+host = "influxdb"
+port = "8086"
+database = "isi_data_insights"
+authenticated = false
+# username = "influxuser"
+# password = "influxpass"
+# or e.g.
+# password = "$env:INFLUXPASS"
+
+# Influxdbv2 configuration
+[influxdbv2]
+host = "localhost"
+port = "8086"
+org = "my-org"
+bucket = "isi_data_insights"
+access_token = "<access_token>"
+# or e.g.
+# access_token = "$env:INFLUX_TOKEN"
+
+# Prometheus configuration
+[prometheus]
+# optional basic auth
+authenticated = false
+# username = "promuser"
+# password = "prompass"
+# tls_cert = "/path/to/certificate"
+# tls_key = "/path/to/key"
+#
+# instance_label_name adds a second label carrying the Isilon cluster name,
+# using the label name of your choice. This is useful in environments such as
+# Kubernetes where Prometheus is configured with a "cluster" external label
+# identifying the Kubernetes cluster. When Prometheus external labels collide
+# with labels already present on a scraped metric, Prometheus renames the
+# metric's label to "exported_<name>", so the Isilon cluster identity is
+# preserved but becomes harder to query directly.
+#
+# By setting instance_label_name to a value that does not conflict with any
+# Prometheus external label or reserved label (e.g. "isilon_cluster"), the
+# Isilon cluster name will be available under that label without renaming.
+# Note that Prometheus reserves "instance" (the scrape target address) and
+# "job", so those names will also be renamed to "exported_instance" /
+# "exported_job" if used here.
+#
+# The "cluster" label is always set to the Isilon cluster name regardless of
+# this setting; instance_label_name only controls whether a second copy of
+# that value is stamped under an additional label name.
+#
+# Example: instance_label_name = "isilon_cluster"
+
+# discard back end currently has no configurable options and hence no config stanza
+
+######################## End of back end configuration ########################
+
+# If using prometheus, the collector supports the Prometheus "http SD" service
+# discovery mechanism.
+#
+# The hostname/IP for the discovery service can be hard coded via listen_addr below
+# otherwise the code will attempt to find and external public IP address
+[prom_http_sd]
+enabled = false
+# listen_addr = "external_hostname"
+sd_port = 9999
+
+############################# Cluster configuration ###########################
+
+# clusters in this section are queried for all partitioned performance datasets
+# the collector checks the dataset definition each collection period and handles
+# additions, removals and definition changes without manual intervention
+# Example definition:
+# [[cluster]]
+# hostname = "mycluster.xyz.com"
+# username = "statsuser"
+# password = "sekr1t"
+# verify-ssl = false
+# authtype = "basic-auth"
+# disabled = false
+# prometheus_port = 9090
+# preserve_case = true
+#	...
+[[cluster]]
+hostname = "demo.cluster.com"
+username = "root"
+password = "a"
+# or e.g.
+# password = "$env:CLUSTER1PASS"
+verify-ssl = true
+
+######################### End of cluster configuration ########################

@@ -1,0 +1,13 @@
+# Grafana dashboard provisioning — auto-loads dashboards from /var/lib/grafana/dashboards.
+apiVersion: 1
+
+providers:
+  - name: PowerScale Data Insights
+    orgId: 1
+    folder: PowerScale
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

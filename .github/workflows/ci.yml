@@ -1,0 +1,30 @@
+# ci.yml — Build and test on push/PR
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build all binaries
+        run: make build
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Check go vet
+        run: go vet ./...

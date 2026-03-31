@@ -1,0 +1,68 @@
+# docker-compose.yml — PowerScale Data Insights evaluation stack
+#
+# Brings up InfluxDB, Grafana, gostats, and goppstats in one command.
+#
+# Before starting:
+#   1. Copy the Docker example configs and add your cluster details:
+#        cp gostats.example.toml  gostats.toml
+#        cp goppstats.example.toml goppstats.toml
+#   2. In each file, set hostname, username, password under [[cluster]].
+#      Add additional [[cluster]] sections to monitor multiple clusters.
+#
+# Usage:
+#   docker compose up -d
+#
+# Then open Grafana at http://localhost:3000 (admin/admin).
+#
+# To stop:
+#   docker compose down
+#
+# To stop and remove all data:
+#   docker compose down -v
+
+services:
+  influxdb:
+    image: influxdb:1.8
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: isi_data_insights
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../dashboards/influxdb:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - influxdb
+
+  gostats:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gostats
+    volumes:
+      - ./gostats.toml:/etc/gostats/idic.toml:ro
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  goppstats:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.goppstats
+    volumes:
+      - ./goppstats.toml:/etc/goppstats/goppstats.toml:ro
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+volumes:
+  influxdb-data:
+  grafana-data:

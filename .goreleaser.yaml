@@ -1,0 +1,95 @@
+# .goreleaser.yaml — PowerScale Data Insights release configuration
+#
+# Builds three binaries (gostats, goppstats, dashgen) for multiple platforms.
+#
+# Usage:
+#   goreleaser release              # full release (requires GITHUB_TOKEN)
+#   goreleaser release --snapshot   # local test build (no publish)
+#
+# Trigger: tag push matching v* (see .github/workflows/release.yml)
+
+version: 2
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: gostats
+    main: ./cmd/gostats/
+    binary: gostats
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
+
+  - id: goppstats
+    main: ./cmd/goppstats/
+    binary: goppstats
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
+
+  - id: dashgen
+    main: ./cmd/dashgen/
+    binary: dashgen
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
+
+archives:
+  - id: default
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+      - LICENSE
+      - configs/*.toml
+      - dashboards/**/*
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+release:
+  github:
+    owner: Isilon
+    name: powerscale_data_insights
+  draft: true
+  prerelease: auto
+  name_template: "{{.Tag}}"

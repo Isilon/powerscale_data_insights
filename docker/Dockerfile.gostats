@@ -1,0 +1,32 @@
+# Dockerfile.gostats — PowerScale Data Insights gostats collector
+#
+# Multi-stage build producing a minimal image (~15-20MB).
+#
+# Build:
+#   docker build -f docker/Dockerfile.gostats -t ghcr.io/isilon/pdi-gostats .
+#
+# Run:
+#   docker run --rm -v /path/to/idic.toml:/etc/gostats/idic.toml \
+#       ghcr.io/isilon/pdi-gostats -config-file /etc/gostats/idic.toml
+
+# ---- Builder stage ----
+FROM golang:1.26-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /gostats ./cmd/gostats/
+
+# ---- Runtime stage ----
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=builder /gostats /usr/local/bin/gostats
+
+ENTRYPOINT ["gostats"]
+CMD ["-config-file", "/etc/gostats/idic.toml"]
