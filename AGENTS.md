@@ -6,9 +6,9 @@ Project guidance for AI assistants and contributors.
 
 **Phase 1 (Scaffolding):** Complete
 **Phase 2 (Shared Library Extraction):** Complete
-**Phase 3 (Dashboard Modernization):** Mostly complete (4 core dashboards + dashgen rewrite done; interim dashboards pending)
-**Phase 4 (Containerization):** Not started
-**Phase 5 (Documentation):** Skeleton only
+**Phase 3 (Dashboard Modernization):** Complete (4 core dashboards + dashgen rewrite)
+**Phase 4 (Containerization):** Complete (Dockerfiles, Compose, GoReleaser, CI/CD)
+**Phase 5 (Documentation):** Complete (README, architecture, getting-started, config reference, dashboards, deployment, OneFS setup, migration guide)
 **Phase 6 (Release):** Not started
 
 See `PLAN.md` for the full project plan with detailed phase descriptions.
@@ -24,13 +24,23 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
   modern panel types, InfluxQL, compatible with Grafana 10+)
 - dashgen rewritten to produce legacy format (was v2beta1)
 - All builds and tests pass (`make build && make test`)
+- Multi-stage Dockerfiles for gostats and goppstats (~23MB images)
+- Docker Compose evaluation stack (InfluxDB + Grafana + collectors)
+- Docker-specific example configs (stdout logging, InfluxDB host pre-set)
+- Grafana provisioning (auto-configured InfluxDB datasource + dashboard loading)
+- `.goreleaser.yaml` for cross-platform binary releases (3 binaries, 6 platforms)
+- GitHub Actions CI (build + test on push/PR) and release (GoReleaser + Docker push on tag)
+- Full documentation suite (README, architecture, getting-started, config
+  reference, dashboards, deployment, OneFS setup, migration guide)
 
 ### What's next
-- Phase 3 remaining: incorporate 3-5 interim dashboards (to be provided)
-- Phase 4: Containerization (Dockerfiles, Docker Compose, GHCR publishing)
-- Phase 5: Documentation
-- A test system (OneFS cluster + InfluxDB + Grafana) will be needed to
-  validate dashboards against real data
+- End-to-end Docker Compose testing (requires OneFS cluster + InfluxDB + Grafana)
+- Phase 6: Release
+
+### Backlog (post-release)
+- Additional dashboards: drive stats, summary stats views, concurrency
+- Prometheus dashboards (PromQL)
+- dashgen test suite
 
 ## Build & Test
 

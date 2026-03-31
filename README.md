@@ -47,16 +47,39 @@ modernized Grafana dashboards.
           └─────────────┘
 ```
 
+Both collectors run independently, querying one or more OneFS clusters via
+PAPI and writing time-series data to the configured backend. Grafana reads
+from the time-series database and renders the pre-built dashboards. See
+[docs/architecture.md](docs/architecture.md) for details.
+
 ## Requirements
 
-- **Go 1.24+** (build from source)
+- **Go 1.25+** (build from source)
 - **OneFS 9.x+** (PAPI v10 for Partitioned Performance, PAPI v3 for summary stats)
 - **InfluxDB** v1.8+ or v2.x (InfluxQL compatibility)
-- **Grafana** 12.x+ (v2beta1 dashboard schema)
+- **Grafana** 10+ (legacy dashboard format with modern panel types)
 
 ## Quick Start
 
-### Build from source
+There are three ways to get up and running:
+
+### Option 1: Docker Compose (fastest)
+
+Brings up InfluxDB, Grafana, and both collectors in one command.
+
+```bash
+cd docker/
+cp gostats.example.toml gostats.toml
+cp goppstats.example.toml goppstats.toml
+# Edit both files: set hostname, username, password under [[cluster]]
+
+docker compose up -d
+```
+
+Open Grafana at [http://localhost:3000](http://localhost:3000) (admin/admin).
+Pre-built dashboards are provisioned automatically.
+
+### Option 2: Build from source
 
 ```bash
 make build
@@ -67,52 +90,48 @@ This produces three binaries in `bin/`:
 - `bin/goppstats`
 - `bin/dashgen`
 
-### Configure
-
-1. Create a local user on your OneFS cluster with the following privileges:
-   - `ISI_PRIV_STATISTICS` — required for gostats
-   - `ISI_PRIV_PERFORMANCE` — required for goppstats
-   - `ISI_PRIV_NFS` — optional, for NFS export path resolution
-
-2. Copy and edit the example configuration files:
-   ```bash
-   cp configs/gostats.example.toml idic.toml
-   cp configs/goppstats.example.toml goppstats.toml
-   ```
-
-3. Edit the config files with your cluster hostname, credentials, and InfluxDB
-   connection details. See [docs/configuration.md](docs/configuration.md) for
-   the complete reference.
-
-### Run
+Configure and run:
 
 ```bash
-# Collect cluster statistics
+cp configs/gostats.example.toml idic.toml
+cp configs/goppstats.example.toml goppstats.toml
+# Edit both files with your cluster and InfluxDB details
+
 ./bin/gostats -config-file idic.toml
-
-# Collect Partitioned Performance data
 ./bin/goppstats -config-file goppstats.toml
-
-# Generate a PP dashboard
-./bin/dashgen -host <cluster> -user <user> -password <pass> \
-  -dataset 1 -datasource "isi_data_insights" -out pp-dashboard.json
 ```
 
-### Import dashboards
+### Option 3: Docker (standalone containers)
 
-Import the pre-built dashboards from `dashboards/influxdb/` into Grafana,
-or use `dashgen` to generate Partitioned Performance dashboards tailored to
-your dataset definitions.
+```bash
+# Build
+docker build -f docker/Dockerfile.gostats -t pdi-gostats .
+docker build -f docker/Dockerfile.goppstats -t pdi-goppstats .
+
+# Run (mount your config file)
+docker run -d -v /path/to/idic.toml:/etc/gostats/idic.toml pdi-gostats
+docker run -d -v /path/to/goppstats.toml:/etc/goppstats/goppstats.toml pdi-goppstats
+```
+
+### Generate a Partitioned Performance dashboard
+
+```bash
+./bin/dashgen -host <cluster> -user <user> -password <pass> \
+  -dataset <id> -out pp-dashboard.json
+```
+
+Import the generated JSON into Grafana, or use the pre-built dashboards in
+`dashboards/influxdb/`.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [Getting Started](docs/getting-started.md)
-- [Configuration Reference](docs/configuration.md)
-- [Dashboards](docs/dashboards.md)
-- [Deployment](docs/deployment.md)
-- [OneFS Setup](docs/onefs-setup.md)
-- [Migrating from v1](docs/migrating-from-v1.md)
+- [Architecture](docs/architecture.md) — component design, data flow, shared library
+- [Getting Started](docs/getting-started.md) — end-to-end setup guide
+- [Configuration Reference](docs/configuration.md) — complete TOML reference
+- [Dashboards](docs/dashboards.md) — dashboard guide and using dashgen
+- [Deployment](docs/deployment.md) — binary, Docker, Docker Compose, Kubernetes
+- [OneFS Setup](docs/onefs-setup.md) — cluster user creation and privileges
+- [Migrating from v1](docs/migrating-from-v1.md) — guide for Python connector users
 
 ## Project Structure
 
@@ -125,7 +144,7 @@ powerscale_data_insights/
 ├── internal/             Shared library (PAPI client, backends, config, logging)
 ├── dashboards/influxdb/  Pre-built Grafana dashboards (InfluxQL)
 ├── configs/              Example configuration files
-├── docker/               Dockerfiles and Docker Compose stack
+├── docker/               Dockerfiles, Docker Compose, Grafana provisioning
 ├── docs/                 Documentation
 └── papi/                 OneFS PAPI schema reference
 ```
