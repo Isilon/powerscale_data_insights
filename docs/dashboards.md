@@ -145,6 +145,40 @@ latency distribution (avg/min/max/stddev) and per-operation breakdowns.
 smb1, smb2, etc.), node (multi-select with include-all, populated from
 selected cluster)
 
+### PowerScale - Client Summary Stats
+
+**File:** `client_summary.json`
+
+Per-client activity dashboard using OneFS client summary statistics. Shows
+which clients are generating the most load or experiencing the highest
+latency -- invaluable for "who's hammering the cluster" investigations.
+
+> **Note:** This dashboard uses `node.summary.client` data which requires
+> `client = true` in the `[summary_stats]` config section.
+>
+> **Cardinality warning:** Client summary stats have high tag cardinality
+> (`remote_addr` x `protocol` x `class` x `node` x `user_name`). On
+> clusters with hundreds of active clients, this can cause InfluxDB
+> performance and storage issues. Monitor your InfluxDB resource usage
+> if enabling this on large production clusters.
+
+**Overview stats:**
+- Total client ops/s, average latency, inbound/outbound throughput
+
+**Top Clients table:**
+- Per-client: address, ops/s, avg/max latency, inbound/outbound throughput
+- Sorted by ops/s descending (busiest clients first)
+- Color-coded latency thresholds
+
+**Time-series panels:**
+- Operation Rate and Average Latency by Client
+- Operation Rate and Average Latency by Protocol
+- Operation Rate and Average Latency by Operation Class
+- Operation Rate and Average Latency by Node
+
+**Variables:** cluster (single-select), node (multi-select with include-all),
+protocol (multi-select with include-all, populated from active protocols)
+
 ## Thresholds
 
 The dashboards use consistent threshold values:
@@ -160,6 +194,8 @@ The dashboards use consistent threshold values:
 | Disk Queue Depth | < 5 | 5-20 | >= 20 |
 | Disk Busy | < 50% | 50-80% | >= 80% |
 | Slow Accesses | 0 | >= 1/s | >= 10/s |
+| Client Avg Latency | < 10ms | 10-50ms | >= 50ms |
+| Client Max Latency | < 50ms | 50-200ms | >= 200ms |
 
 ## Importing Dashboards
 

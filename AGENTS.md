@@ -38,7 +38,10 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - Phase 6: Release
 
 ### Backlog (post-release)
-- Additional dashboards: drive stats, summary stats views, concurrency
+- Evaluate collecting node.protostats.* (per-node protocol stats exist in
+  OneFS but are not currently collected; assess overlap with existing
+  node.summary.protocol and cluster.protostats.* and document when to use each)
+- Additional dashboards: concurrency
 - Prometheus dashboards (PromQL)
 - dashgen test suite
 
