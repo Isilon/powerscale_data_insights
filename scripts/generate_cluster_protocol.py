@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the Protocol Detail dashboard for both InfluxDB and Prometheus.
+"""Generate the Protocol Overview dashboard for both InfluxDB and Prometheus.
 
-Per-protocol performance analysis for a single Dell PowerScale cluster.
-Shows client connections, operation mix, throughput, and latency detail
-broken down by protocol operation.
+Cluster-level protocol performance for a single Dell PowerScale cluster.
+Shows client connections, operation mix, throughput, and latency broken
+down by protocol operation, with an optional per-node breakdown section.
 
 Generates both InfluxDB and Prometheus variants.
 """
@@ -12,14 +12,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dashlib import *
 
 README = """\
-## PowerScale - Protocol Detail
+## PowerScale - Protocol Overview
 
-Per-protocol performance analysis for a Dell PowerScale cluster. Select a \
+Cluster-level protocol performance for a Dell PowerScale cluster. Select a \
 protocol from the drop-down to view client connections, operation mix, \
 throughput, and latency broken down by individual protocol operations.
 
 Use the **cluster** and **protocol** selectors above to focus on the \
 cluster and protocol of interest.
+
+The **Node Breakdown** row at the bottom (collapsed by default) shows \
+per-node latency, throughput, and ops/s for the selected protocol. \
+This helps identify individual nodes with elevated latency or uneven \
+load distribution. It requires `summary_stats.protocol = true` in the \
+gostats configuration. For full per-node, per-operation analysis see the \
+[Protocol Detail](/d/powerscale-protocol-detail/powerscale-protocol-detail) \
+dashboard.
 
 <details>
 <summary>Protocol names (OneFS naming conventions)</summary>
@@ -315,6 +323,43 @@ def generate(backend):
         y=y, unit="ms", axis_min=0))
     pid += 1; y += 8
 
+    # ── Node Breakdown (collapsed row) ────────────────────────────────
+    # Uses node.summary.protocol data (requires summary_stats.protocol = true).
+    # Aggregates per-operation data to show per-node totals for the selected protocol.
+    NSP = '{cluster=~"$cluster", protocol=~"$protocol"}'
+    inner = []; iy = y + 1; ipid = pid + 1
+
+    inner.append(timeseries_panel(ds, ipid,
+        "Per-Node $protocol Latency for $cluster",
+        [T("A",
+           f'SELECT max("time_avg") / 1000 FROM "node.summary.protocol" WHERE {W} AND "protocol" =~ /^$protocol$/ AND $timeFilter GROUP BY time($__interval), "node" fill(null)',
+           f'max by (node) (isilon_stat_node_summary_protocol_time_avg{NSP}) / 1000',
+           alias="Node $tag_node", legend="{{node}}")],
+        y=iy, unit="ms", axis_label="Latency", axis_min=0))
+    ipid += 1; iy += 8
+
+    inner.append(timeseries_panel(ds, ipid,
+        "Per-Node $protocol Throughput for $cluster",
+        [T("A",
+           f'SELECT sum("in") + sum("out") FROM "node.summary.protocol" WHERE {W} AND "protocol" =~ /^$protocol$/ AND $timeFilter GROUP BY time($__interval), "node" fill(null)',
+           f'sum by (node) (isilon_stat_node_summary_protocol_in{NSP}) + sum by (node) (isilon_stat_node_summary_protocol_out{NSP})',
+           alias="Node $tag_node", legend="{{node}}")],
+        y=iy, unit="Bps", axis_min=0))
+    ipid += 1; iy += 8
+
+    inner.append(timeseries_panel(ds, ipid,
+        "Per-Node $protocol Ops/s for $cluster",
+        [T("A",
+           f'SELECT sum("operation_rate") FROM "node.summary.protocol" WHERE {W} AND "protocol" =~ /^$protocol$/ AND $timeFilter GROUP BY time($__interval), "node" fill(null)',
+           f'sum by (node) (isilon_stat_node_summary_protocol_operation_rate{NSP})',
+           alias="Node $tag_node", legend="{{node}}")],
+        y=iy, unit="ops", axis_min=0))
+    ipid += 1; iy += 8
+
+    panels.append(row_panel(pid, "Node Breakdown (summary_stats.protocol)", y,
+                            collapsed=True, panels=inner))
+    pid = ipid; y = iy
+
     # Template variables
     proto_default = "nfs"
     if influx:
@@ -330,8 +375,8 @@ def generate(backend):
     variables.append(var_custom("protocol", "Protocol", PROTO_LIST, default=proto_default))
 
     dash = make_dashboard(
-        title="PowerScale - Protocol Detail",
-        description="Per-protocol performance analysis for a Dell PowerScale cluster",
+        title="PowerScale - Protocol Overview",
+        description="Cluster-level protocol performance for a Dell PowerScale cluster",
         tags=tags, variables=variables, panels=panels,
         time_from="now-1h", refresh="",
     )

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the Protocol Summary Statistics dashboard.
+"""Generate the Protocol Detail dashboard.
 
 Uses node.summary.protocol data which provides per-node, per-protocol,
 per-operation breakdowns with full latency statistics (avg/min/max/stddev).
 
-This is distinct from the Protocol Detail dashboard which uses
-cluster.protostats.* (cluster-level aggregates without per-operation
+This is the deep-dive complement to the Protocol Overview dashboard which
+uses cluster.protostats.* (cluster-level aggregates without per-operation
 latency distribution).
 
 Generates both InfluxDB and Prometheus variants.
@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dashlib import *
 
 README = """\
-## PowerScale - Protocol Summary Stats
+## PowerScale - Protocol Detail
 
 Per-node, per-operation protocol statistics with latency distribution \
 (avg/min/max/stddev) from OneFS summary statistics.
@@ -162,7 +162,7 @@ def generate(backend):
         ]
 
     dash = make_dashboard(
-        title="PowerScale - Protocol Summary Stats",
+        title="PowerScale - Protocol Detail",
         description="Per-node, per-operation protocol statistics with latency "
                     "distribution (avg/min/max/stddev). Uses OneFS summary statistics.",
         tags=tags,

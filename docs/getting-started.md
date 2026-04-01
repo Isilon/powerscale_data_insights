@@ -144,7 +144,7 @@ The four core dashboards are:
 | **PowerScale - Cluster List** | Multi-cluster overview with health, CPU, capacity, protocol stats |
 | **PowerScale - Cluster Detail** | Single cluster deep dive with CPU, network, disk, cache, protocol panels |
 | **PowerScale - Cluster Capacity** | Storage utilization across clusters |
-| **PowerScale - Protocol Detail** | Per-protocol performance analysis for a single cluster |
+| **PowerScale - Protocol Overview** | Cluster-level protocol performance for a single cluster |
 
 ## Step 6: Generate PP Dashboards (Optional)
 

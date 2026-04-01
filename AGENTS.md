@@ -44,6 +44,15 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - Evaluate collecting node.protostats.* (per-node protocol stats exist in
   OneFS but are not currently collected; assess overlap with existing
   node.summary.protocol and cluster.protostats.* and document when to use each)
+  - **Finding:** node.protostats.* is redundant with node.summary.protocol
+    (already collected). No code changes needed. Recommendation: use
+    node.summary.protocol for per-node visibility, keep cluster.protostats.*
+    for the cluster-level overview.
+- Add collapsible "Node Breakdown" row to Protocol Overview dashboard using
+  node.summary.protocol data (per-node latency, throughput, ops/s) — **Done**
+- Consider standalone "Node Protocol Hotspots" dashboard (top-N / anomaly-first
+  view for identifying per-node protocol issues at a glance)
+- Investigate adding support for the 3 missing summary stat endpoints
 - Additional dashboards: concurrency
 - dashgen test suite
 

@@ -64,13 +64,15 @@ orange 85-90%, red >90%).
 
 **Variables:** cluster (multi-select)
 
-### PowerScale - Protocol Detail
+### PowerScale - Protocol Overview
 
 **File:** `cluster_protocol.json`
 
-Per-protocol performance analysis for a single cluster. Select a protocol
+Cluster-level protocol performance for a single cluster. Select a protocol
 to see its throughput, operations, latency, client connections, and
-operation mix breakdown.
+operation mix breakdown. A collapsible Node Breakdown row at the bottom
+shows per-node latency, throughput, and ops/s (requires
+`summary_stats.protocol = true`).
 
 **Stat panels:** Total Nodes, Nodes Down, Health, CPU, Capacity,
 protocol-specific throughput/ops/latency
@@ -79,6 +81,9 @@ protocol-specific throughput/ops/latency
 - Client Connections for selected protocol
 - Protocol Operations with CPU overlay
 - Operation Mix (breakdown by operation type and class)
+
+**Node Breakdown (collapsed):**
+- Per-node latency, throughput, and ops/s for the selected protocol
 
 **Variables:** cluster (single-select), protocol (single-select: nfs, nfs3,
 nfs4, smb1, smb2, hdfs, ftp, siq, lsass_in, lsass_out, papi)
@@ -113,18 +118,18 @@ abnormal latency or queue depth, especially on large clusters.
 **Variables:** cluster (single-select), node (multi-select with include-all,
 populated from selected cluster)
 
-### PowerScale - Protocol Summary Stats
+### PowerScale - Protocol Detail
 
 **File:** `protocol_summary.json`
 
 Per-node, per-operation protocol statistics using OneFS summary statistics.
-Provides deeper analysis than the Protocol Detail dashboard, with full
+Provides deeper analysis than the Protocol Overview dashboard, with full
 latency distribution (avg/min/max/stddev) and per-operation breakdowns.
 
 > **Note:** This dashboard uses `node.summary.protocol` data which requires
 > `protocol = true` in the `[summary_stats]` config section. The Protocol
-> Detail dashboard uses `cluster.protostats.*` data which is always collected.
-> Use Protocol Detail for cluster-level overview; use Protocol Summary Stats
+> Overview dashboard uses `cluster.protostats.*` data which is always collected.
+> Use Protocol Overview for cluster-level overview; use Protocol Detail
 > for per-node, per-operation drill-down with latency distribution.
 
 **Overview stats:**
@@ -296,7 +301,7 @@ Grafana UI after import. Common customizations:
 - **Change default time range** — edit the dashboard settings
 - **Add panels** — add new panels using the same InfluxDB datasource
 - **Adjust thresholds** — edit panel overrides to change color thresholds
-- **Add protocols** — edit the protocol variable in Protocol Detail to add
+- **Add protocols** — edit the protocol variable in Protocol Overview to add
   or remove protocol options
 
 If you re-import a dashboard, set **overwrite = true** to replace the

@@ -1,7 +1,7 @@
 {
   "id": null,
   "uid": null,
-  "title": "PowerScale - Protocol Summary Stats",
+  "title": "PowerScale - Protocol Detail",
   "description": "Per-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev). Uses OneFS summary statistics.",
   "tags": [
     "powerscale",
@@ -120,7 +120,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## PowerScale - Protocol Summary Stats\n\nPer-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev) from OneFS summary statistics.\n\nRequires `protocol = true` in the `[summary_stats]` section of the gostats collector configuration.",
+        "content": "## PowerScale - Protocol Detail\n\nPer-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev) from OneFS summary statistics.\n\nRequires `protocol = true` in the `[summary_stats]` section of the gostats collector configuration.",
         "code": {
           "language": "plaintext",
           "showLineNumbers": false,

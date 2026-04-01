@@ -1,8 +1,8 @@
 {
   "id": null,
   "uid": null,
-  "title": "PowerScale - Protocol Detail",
-  "description": "Per-protocol performance analysis for a Dell PowerScale cluster",
+  "title": "PowerScale - Protocol Overview",
+  "description": "Cluster-level protocol performance for a Dell PowerScale cluster",
   "tags": [
     "powerscale",
     "gostats"
@@ -184,7 +184,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "## PowerScale - Protocol Detail\n\nPer-protocol performance analysis for a Dell PowerScale cluster. Select a protocol from the drop-down to view client connections, operation mix, throughput, and latency broken down by individual protocol operations.\n\nUse the **cluster** and **protocol** selectors above to focus on the cluster and protocol of interest.\n\n<details>\n<summary>Protocol names (OneFS naming conventions)</summary>\n\n| Name | Protocol |\n|------|----------|\n| nfs | NFS v3 |\n| nfs4 | NFS v4 |\n| smb1 | SMB v1 / CIFS |\n| smb2 | SMB v2/v3 |\n| hdfs | HDFS |\n| http | HTTP/WebDAV |\n| ftp | FTP |\n| s3 | S3 |\n| siq | SyncIQ replication |\n| jobd | Job Engine |\n| nlm | Network Lock Manager |\n| irp | Internal |\n| lsass_in | Authentication (inbound) |\n| lsass_out | Authentication (outbound) |\n| papi | Platform API |\n| nfsrdma | NFS over RDMA |\n| nfs4rdma | NFS v4 over RDMA |\n\n</details>",
+        "content": "## PowerScale - Protocol Overview\n\nCluster-level protocol performance for a Dell PowerScale cluster. Select a protocol from the drop-down to view client connections, operation mix, throughput, and latency broken down by individual protocol operations.\n\nUse the **cluster** and **protocol** selectors above to focus on the cluster and protocol of interest.\n\nThe **Node Breakdown** row at the bottom (collapsed by default) shows per-node latency, throughput, and ops/s for the selected protocol. This helps identify individual nodes with elevated latency or uneven load distribution. It requires `summary_stats.protocol = true` in the gostats configuration. For full per-node, per-operation analysis see the [Protocol Detail](/d/powerscale-protocol-detail/powerscale-protocol-detail) dashboard.\n\n<details>\n<summary>Protocol names (OneFS naming conventions)</summary>\n\n| Name | Protocol |\n|------|----------|\n| nfs | NFS v3 |\n| nfs4 | NFS v4 |\n| smb1 | SMB v1 / CIFS |\n| smb2 | SMB v2/v3 |\n| hdfs | HDFS |\n| http | HTTP/WebDAV |\n| ftp | FTP |\n| s3 | S3 |\n| siq | SyncIQ replication |\n| jobd | Job Engine |\n| nlm | Network Lock Manager |\n| irp | Internal |\n| lsass_in | Authentication (inbound) |\n| lsass_out | Authentication (outbound) |\n| papi | Platform API |\n| nfsrdma | NFS over RDMA |\n| nfs4rdma | NFS v4 over RDMA |\n\n</details>",
         "code": {
           "language": "plaintext",
           "showLineNumbers": false,
@@ -1508,6 +1508,234 @@
           "sort": "desc"
         }
       }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Node Breakdown (summary_stats.protocol)",
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 77
+      },
+      "panels": [
+        {
+          "id": 20,
+          "type": "timeseries",
+          "title": "Per-Node $protocol Latency for $cluster",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 78
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "DS_INFLUXDB"
+              },
+              "rawQuery": true,
+              "query": "SELECT max(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"protocol\" =~ /^$protocol$/ AND $timeFilter GROUP BY time($__interval), \"node\" fill(null)",
+              "resultFormat": "time_series",
+              "alias": "Node $tag_node"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "pointSize": 5,
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "gradientMode": "none",
+                "thresholdsStyle": {
+                  "mode": "off"
+                },
+                "axisLabel": "Latency"
+              },
+              "unit": "ms",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "calcs": [
+                "min",
+                "max",
+                "mean",
+                "lastNotNull"
+              ],
+              "width": 500
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 21,
+          "type": "timeseries",
+          "title": "Per-Node $protocol Throughput for $cluster",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 86
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "DS_INFLUXDB"
+              },
+              "rawQuery": true,
+              "query": "SELECT sum(\"in\") + sum(\"out\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"protocol\" =~ /^$protocol$/ AND $timeFilter GROUP BY time($__interval), \"node\" fill(null)",
+              "resultFormat": "time_series",
+              "alias": "Node $tag_node"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "pointSize": 5,
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "gradientMode": "none",
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "unit": "Bps",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "calcs": [
+                "min",
+                "max",
+                "mean",
+                "lastNotNull"
+              ],
+              "width": 500
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 22,
+          "type": "timeseries",
+          "title": "Per-Node $protocol Ops/s for $cluster",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 94
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "influxdb",
+                "uid": "DS_INFLUXDB"
+              },
+              "rawQuery": true,
+              "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"protocol\" =~ /^$protocol$/ AND $timeFilter GROUP BY time($__interval), \"node\" fill(null)",
+              "resultFormat": "time_series",
+              "alias": "Node $tag_node"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "pointSize": 5,
+                "spanNulls": true,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "gradientMode": "none",
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "unit": "ops",
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "calcs": [
+                "min",
+                "max",
+                "mean",
+                "lastNotNull"
+              ],
+              "width": 500
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        }
+      ]
     }
   ],
   "links": []
