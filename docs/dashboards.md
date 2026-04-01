@@ -309,10 +309,13 @@ The `dashgen` tool generates Grafana dashboards for Partitioned Performance
 dataset definition (partition attributes, workload types), and produces a
 dashboard with panels correctly grouped by those attributes.
 
+Dashboards can target either InfluxDB (InfluxQL) or Prometheus (PromQL)
+backends via the `-backend` flag.
+
 ### Usage
 
 ```bash
-dashgen -host <cluster> -user <user> -password <pass> -dataset <id> [-out file.json]
+dashgen -host <cluster> -user <user> -password <pass> -dataset <id> [-backend influxdb|prometheus] [-out file.json]
 ```
 
 ### Flags
@@ -324,7 +327,8 @@ dashgen -host <cluster> -user <user> -password <pass> -dataset <id> [-out file.j
 | `-user` | *required* | PAPI username |
 | `-password` | *required* | PAPI password |
 | `-dataset` | *required* | PP dataset ID |
-| `-influx-version` | `"v1"` | InfluxDB version: `v1` or `v2` |
+| `-backend` | `"influxdb"` | Dashboard backend: `influxdb` or `prometheus` |
+| `-influx-version` | `"v1"` | InfluxDB version: `v1` or `v2` (only applies to influxdb backend) |
 | `-out` | stdout | Output file path |
 | `-skip-verify` | `false` | Skip TLS certificate verification |
 | `-export-path` | `false` | Group by `export_path` instead of `export_id` |
@@ -333,9 +337,13 @@ dashgen -host <cluster> -user <user> -password <pass> -dataset <id> [-out file.j
 
 The generated dashboard includes:
 
-- **Title:** `Partitioned Performance: <DatasetName>`
-- **Tags:** `["goppstats", "powerscale"]`
+- **Title:** `Partitioned Performance: <DatasetName>` (Prometheus dashboards append "(Prometheus)")
+- **Tags:** `["goppstats", "powerscale"]` (Prometheus adds `"prometheus"`)
 - **Variables:** cluster selector, overflow workload toggle
+
+**Info panel:** The first panel is a text panel showing the dataset
+definition (ID, name, stat key, partition attributes, filters, workload
+count) and an explanation of the overflow toggle.
 
 **Panels** (one timeseries panel per metric):
 
@@ -358,16 +366,39 @@ Each panel contains queries grouped by the dataset's partition attributes
 overflow workload types (Additional, Excluded, Overaccounted, System,
 Unknown) gated by the overflow toggle variable.
 
+#### Backend Differences
+
+**InfluxDB dashboards** use InfluxQL queries with `SELECT ... FROM ... GROUP BY`
+syntax. Overflow queries use the `[[overflow]]` Grafana text substitution trick.
+
+**Prometheus dashboards** use PromQL expressions with `sum by (...)` syntax.
+Metric names follow the goppstats Prometheus naming convention:
+`isilon_ppstat_<sorted_attributes>_<field>` (e.g.,
+`isilon_ppstat_export_id_protocol_username_cpu`). Overflow buckets are
+separate metrics with the workload type embedded in the name (e.g.,
+`isilon_ppstat_export_id_protocol_username_Additional_cpu`). Overflow queries
+are gated using `and on() (vector($overflow) == 1)` which returns no data
+when the overflow variable is disabled.
+
 ### Example
 
 ```bash
-# Generate a dashboard for dataset 1
+# Generate an InfluxDB dashboard for dataset 1 (default backend)
 ./bin/dashgen \
   -host mycluster.example.com \
   -user statsuser \
   -password mypass \
   -dataset 1 \
-  -out pp-dataset-1.json
+  -out pp-dataset-1-influxdb.json
+
+# Generate a Prometheus dashboard for dataset 1
+./bin/dashgen \
+  -host mycluster.example.com \
+  -user statsuser \
+  -password mypass \
+  -dataset 1 \
+  -backend prometheus \
+  -out pp-dataset-1-prometheus.json
 
 # If using export path lookup (goppstats has lookup_export_ids=true)
 ./bin/dashgen \
@@ -380,4 +411,5 @@ Unknown) gated by the overflow toggle variable.
 ```
 
 Import the generated file into Grafana as described above. The dashboard
-uses the same InfluxDB datasource as the pre-built dashboards.
+uses the `__inputs` binding mechanism — Grafana will prompt you to select
+the appropriate datasource (InfluxDB or Prometheus) on import.

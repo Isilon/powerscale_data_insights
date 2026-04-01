@@ -23,6 +23,8 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - 4 core Grafana dashboards created in legacy format (schemaVersion 39,
   modern panel types, InfluxQL, compatible with Grafana 10+)
 - dashgen rewritten to produce legacy format (was v2beta1)
+- dashgen enhanced with `-backend` flag: generates InfluxDB (default) or
+  Prometheus (PromQL) dashboards for PP datasets
 - All builds and tests pass (`make build && make test`)
 - Multi-stage Dockerfiles for gostats and goppstats (~23MB images)
 - Docker Compose evaluation stack (InfluxDB + Grafana + collectors)
@@ -41,7 +43,6 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - Evaluate collecting node.protostats.* (per-node protocol stats exist in
   OneFS but are not currently collected; assess overlap with existing
   node.summary.protocol and cluster.protostats.* and document when to use each)
-- Enhance dashgen to produce Prometheus-compatible (PromQL) dashboards
 - Additional dashboards: concurrency
 - dashgen test suite
 
@@ -142,8 +143,9 @@ Collects Partitioned Performance data via PAPI. Key local files:
 - `config.go` — goppstats-specific config (export lookup, etc.)
 
 ### cmd/dashgen
-Generates Grafana v2beta1 dashboard JSON for PP datasets. Single file
-(`main.go`, ~950 lines). Uses `internal/api` for PAPI access.
+Generates Grafana dashboard JSON for PP datasets. Single file
+(`main.go`, ~940 lines). Uses `internal/api` for PAPI access. Supports
+both InfluxDB (InfluxQL) and Prometheus (PromQL) backends via `-backend` flag.
 
 ## Configuration
 

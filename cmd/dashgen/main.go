@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/isilon/powerscale_data_insights/internal/api"
@@ -28,6 +29,7 @@ type Config struct {
 	DSVersion  string // "v1" or "v2"
 	OutFile    string
 	SkipVerify bool
+	Backend    string // "influxdb" or "prometheus"
 }
 
 func parseFlags() Config {
@@ -42,11 +44,21 @@ func parseFlags() Config {
 	flag.StringVar(&cfg.OutFile, "out", "", "Output file path (default: stdout)")
 	flag.BoolVar(&cfg.SkipVerify, "skip-verify", false, "Skip TLS certificate verification")
 	flag.BoolVar(&useExportPath, "export-path", false, "Group by export_path tag instead of export_id (use when collector has lookup_export_ids=true)")
+	flag.StringVar(&cfg.Backend, "backend", "influxdb", "Dashboard backend: influxdb or prometheus")
 	flag.Parse()
 
 	if cfg.Host == "" || cfg.Username == "" || cfg.Password == "" || cfg.DatasetID == 0 {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-		flag.PrintDefaults()
+		if cfg.DatasetID == 0 && cfg.Host != "" {
+			fmt.Fprintf(os.Stderr, "Dataset 0 (System) has a fixed schema — use the pre-built dashboards in dashboards/influxdb/ or dashboards/prometheus/ instead.\n")
+		} else {
+			fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+			flag.PrintDefaults()
+		}
+		os.Exit(1)
+	}
+	cfg.Backend = strings.ToLower(cfg.Backend)
+	if cfg.Backend != "influxdb" && cfg.Backend != "prometheus" {
+		fmt.Fprintf(os.Stderr, "Invalid backend %q: must be 'influxdb' or 'prometheus'\n", cfg.Backend)
 		os.Exit(1)
 	}
 	if useExportPath {
@@ -287,12 +299,17 @@ type GridPos struct {
 }
 
 type Target struct {
-	RefID        string `json:"refId"`
-	Datasource   DSRef  `json:"datasource"`
-	RawQuery     bool   `json:"rawQuery"`
-	Query        string `json:"query"`
-	ResultFormat string `json:"resultFormat"`
+	RefID      string `json:"refId"`
+	Datasource DSRef  `json:"datasource"`
+	// InfluxDB fields
+	RawQuery     bool   `json:"rawQuery,omitempty"`
+	Query        string `json:"query,omitempty"`
+	ResultFormat string `json:"resultFormat,omitempty"`
 	Alias        string `json:"alias,omitempty"`
+	// Prometheus fields
+	Expr         string `json:"expr,omitempty"`
+	LegendFormat string `json:"legendFormat,omitempty"`
+	EditorMode   string `json:"editorMode,omitempty"`
 }
 
 type FieldConfig struct {
@@ -500,11 +517,70 @@ func buildOverflowVariable() TemplateVar {
 	}
 }
 
+// buildReadmePanel constructs an introductory text panel that describes the
+// dataset definition and explains the overflow toggle.
+func buildReadmePanel(id int, ds DsInfoEntry) Panel {
+	// Build attribute list using translated tag names.
+	attrs := make([]string, len(ds.Metrics))
+	for i, a := range ds.Metrics {
+		attrs[i] = "`" + influxTagName(a) + "`"
+	}
+	attrList := strings.Join(attrs, ", ")
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Partitioned Performance: %s\n\n", ds.Name))
+	sb.WriteString("| | |\n|---|---|\n")
+	sb.WriteString(fmt.Sprintf("| **Dataset ID** | %d |\n", ds.Id))
+	sb.WriteString(fmt.Sprintf("| **Name** | %s |\n", ds.Name))
+	sb.WriteString(fmt.Sprintf("| **Stat Key** | `%s` |\n", ds.StatKey))
+	sb.WriteString(fmt.Sprintf("| **Partition Attributes** | %s |\n", attrList))
+	if len(ds.Filters) > 0 {
+		filters := make([]string, len(ds.Filters))
+		for i, f := range ds.Filters {
+			filters[i] = "`" + f + "`"
+		}
+		sb.WriteString(fmt.Sprintf("| **Filters** | %s |\n", strings.Join(filters, ", ")))
+	} else {
+		sb.WriteString("| **Filters** | *(none)* |\n")
+	}
+	sb.WriteString(fmt.Sprintf("| **Workload Count** | %d |\n", ds.WorkloadCount))
+
+	sb.WriteString("\nEach panel below shows one metric broken out by the partition attributes listed above.\n\n")
+	sb.WriteString("### Overflow Toggle\n\n")
+	sb.WriteString("The **Overflow Enabled** variable (top of dashboard) controls whether overflow workload ")
+	sb.WriteString("buckets are displayed. OneFS tracks five overflow categories that capture work not ")
+	sb.WriteString("attributed to a specific partitioned workload:\n\n")
+	sb.WriteString("- **Additional** — work from workloads beyond the dataset's workload limit\n")
+	sb.WriteString("- **Excluded** — work excluded by dataset filters\n")
+	sb.WriteString("- **Overaccounted** — work counted in multiple workloads (deduplicated here)\n")
+	sb.WriteString("- **System** — internal OneFS system overhead\n")
+	sb.WriteString("- **Unknown** — work that could not be classified\n\n")
+	sb.WriteString("Set to **enabled** to overlay these on each panel; set to **disabled** (default) to show only the partitioned workload data.")
+
+	return Panel{
+		ID:      id,
+		Type:    "text",
+		Title:   "",
+		GridPos: GridPos{H: 10, W: 24, X: 0, Y: 0},
+		Options: map[string]any{
+			"mode":    "markdown",
+			"content": sb.String(),
+		},
+	}
+}
+
 // GenerateDashboard produces the full Grafana legacy-format dashboard for a dataset.
 func GenerateDashboard(ds DsInfoEntry) Dashboard {
 	panels := []Panel{}
 	panelID := 1
 	yPos := 0
+
+	// README panel: dataset definition and overflow explanation
+	readme := buildReadmePanel(panelID, ds)
+	readme.GridPos.Y = yPos
+	panels = append(panels, readme)
+	panelID++
+	yPos += readme.GridPos.H
 
 	for _, metric := range panelMetrics {
 		meta := metaFor(metric)
@@ -556,6 +632,283 @@ func GenerateDashboard(ds DsInfoEntry) Dashboard {
 		Templating: Templating{
 			List: []TemplateVar{
 				buildClusterVariable(),
+				buildOverflowVariable(),
+			},
+		},
+		Annotations: AnnotationList{
+			List: []Annotation{{
+				BuiltIn:    1,
+				Datasource: DSRef{Type: "grafana", UID: "-- Grafana --"},
+				Enable:     true,
+				Hide:       true,
+				IconColor:  "rgba(0, 211, 255, 1)",
+				Name:       "Annotations & Alerts",
+				Type:       "dashboard",
+			}},
+		},
+		Panels: panels,
+		Links:  []any{},
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Prometheus metric naming (must match goppstats/prometheus.go conventions)
+// ---------------------------------------------------------------------------
+
+const (
+	promNamespace  = "isilon"
+	promBasePPName = "ppstat"
+)
+
+// promAgg maps InfluxDB aggregation function names to PromQL equivalents.
+func promAgg(influxAgg string) string {
+	if influxAgg == "mean" {
+		return "avg"
+	}
+	return influxAgg
+}
+
+// promBasename constructs the Prometheus metric base name for a dataset.
+// Metric names in goppstats follow: isilon_ppstat_<sorted_metrics>
+// where the dataset's partition attribute names are sorted alphabetically.
+func promBasename(ds DsInfoEntry) string {
+	metricNames := append([]string(nil), ds.Metrics...)
+	sort.Strings(metricNames)
+	basename := promNamespace + "_" + promBasePPName
+	for _, m := range metricNames {
+		basename += "_" + m
+	}
+	return basename
+}
+
+// promMetricName returns the full Prometheus metric name for a regular PP field.
+func promMetricName(ds DsInfoEntry, field string) string {
+	return promBasename(ds) + "_" + field
+}
+
+// promOverflowMetricName returns the Prometheus metric name for an overflow
+// bucket field. Overflow metrics embed the workload type in the metric name.
+func promOverflowMetricName(ds DsInfoEntry, workloadType, field string) string {
+	return promBasename(ds) + "_" + workloadType + "_" + field
+}
+
+// ---------------------------------------------------------------------------
+// Prometheus query builders
+// ---------------------------------------------------------------------------
+
+// buildPromNormalQuery builds a PromQL query for non-overflow partitioned data.
+func buildPromNormalQuery(ds DsInfoEntry, field, agg, scaleExpr string, groupByTags []string) string {
+	metric := promMetricName(ds, field)
+	labels := `{cluster=~"$cluster"}`
+
+	var expr string
+	if len(groupByTags) > 0 {
+		groupBy := strings.Join(groupByTags, ", ")
+		expr = fmt.Sprintf("%s by (%s) (%s%s)", promAgg(agg), groupBy, metric, labels)
+	} else {
+		expr = fmt.Sprintf("%s(%s%s)", promAgg(agg), metric, labels)
+	}
+	if scaleExpr != "" {
+		expr += scaleExpr
+	}
+	return expr
+}
+
+// buildPromOverflowQuery builds a PromQL query for an overflow workload_type,
+// gated by the $overflow variable. When $overflow=0 the query returns no data;
+// when $overflow=1 it returns the overflow metric values.
+func buildPromOverflowQuery(ds DsInfoEntry, field, agg, scaleExpr, workloadType string) string {
+	metric := promOverflowMetricName(ds, workloadType, field)
+	labels := `{cluster=~"$cluster"}`
+
+	expr := fmt.Sprintf("%s(%s%s)", promAgg(agg), metric, labels)
+	if scaleExpr != "" {
+		expr += scaleExpr
+	}
+	// Gate: vector($overflow) == 1 evaluates to empty set when overflow=0,
+	// causing the `and on()` to filter everything out.
+	return fmt.Sprintf("(%s) and on() (vector($overflow) == 1)", expr)
+}
+
+// promLegendFormat builds a Grafana legend format string for Prometheus,
+// using Prometheus {{label}} template syntax.
+func promLegendFormat(groupByTags []string) string {
+	if len(groupByTags) == 0 {
+		return ""
+	}
+	parts := make([]string, len(groupByTags))
+	for i, t := range groupByTags {
+		parts[i] = t + ": {{" + t + "}}"
+	}
+	return strings.Join(parts, " | ")
+}
+
+// ---------------------------------------------------------------------------
+// Prometheus panel and dashboard builders
+// ---------------------------------------------------------------------------
+
+// buildPromPanel constructs a single time-series panel for one metric using
+// Prometheus as the datasource.
+func buildPromPanel(id int, ds DsInfoEntry, metric string, meta MetricMeta) Panel {
+	groupByTags := make([]string, len(ds.Metrics))
+	for i, f := range ds.Metrics {
+		groupByTags[i] = influxTagName(f)
+	}
+
+	dsRef := DSRef{Type: "prometheus", UID: "${DS_PROMETHEUS}"}
+	targets := []Target{}
+	qIdx := 0
+
+	// Query A: normal (partitioned) data grouped by dataset attributes
+	targets = append(targets, Target{
+		RefID:        refID(qIdx),
+		Datasource:   dsRef,
+		Expr:         buildPromNormalQuery(ds, metric, meta.Agg, meta.ScaleExpr, groupByTags),
+		LegendFormat: promLegendFormat(groupByTags),
+		EditorMode:   "code",
+	})
+	qIdx++
+
+	// Queries B-F: one per overflow workload_type, gated by $overflow variable
+	for _, wt := range overflowWorkloadTypes {
+		targets = append(targets, Target{
+			RefID:        refID(qIdx),
+			Datasource:   dsRef,
+			Expr:         buildPromOverflowQuery(ds, metric, meta.Agg, meta.ScaleExpr, wt),
+			LegendFormat: wt,
+			EditorMode:   "code",
+		})
+		qIdx++
+	}
+
+	return Panel{
+		ID:         id,
+		Type:       "timeseries",
+		Title:      meta.Title,
+		GridPos:    GridPos{H: 8, W: 24, X: 0, Y: 0}, // Y set later
+		Datasource: &dsRef,
+		Targets:    targets,
+		FieldConfig: &FieldConfig{
+			Defaults: FieldDefaults{
+				Color: map[string]string{"mode": "palette-classic"},
+				Unit:  meta.Unit,
+				Custom: map[string]any{
+					"drawStyle":         "line",
+					"lineInterpolation": "linear",
+					"lineWidth":         1,
+					"fillOpacity":       10,
+					"pointSize":         5,
+					"showPoints":        "auto",
+					"spanNulls":         60000,
+					"stacking":          map[string]string{"group": "A", "mode": "none"},
+				},
+				Thresholds: &Thresholds{
+					Mode: "absolute",
+					Steps: []ThresholdStep{
+						{Color: "green", Value: nil},
+						{Color: "red", Value: 80},
+					},
+				},
+			},
+			Overrides: []any{},
+		},
+		Options: map[string]any{
+			"legend": map[string]any{
+				"displayMode": "list",
+				"placement":   "bottom",
+				"showLegend":  true,
+			},
+			"tooltip": map[string]any{
+				"mode": "multi",
+				"sort": "desc",
+			},
+		},
+	}
+}
+
+// buildPromClusterVariable returns the cluster selector query variable for Prometheus.
+func buildPromClusterVariable(ds DsInfoEntry) TemplateVar {
+	// Use the first panel metric to discover which clusters have PP data.
+	metric := promMetricName(ds, panelMetrics[0])
+	return TemplateVar{
+		Name:       "cluster",
+		Type:       "query",
+		Datasource: &DSRef{Type: "prometheus", UID: "${DS_PROMETHEUS}"},
+		Query:      fmt.Sprintf("label_values(%s, cluster)", metric),
+		Definition: fmt.Sprintf("label_values(%s, cluster)", metric),
+		Sort:       1,
+		Multi:      false,
+		IncludeAll: false,
+		AllValue:   ".*",
+		Current:    map[string]any{},
+		Refresh:    1,
+		Hide:       0,
+	}
+}
+
+// GeneratePromDashboard produces a Prometheus Grafana legacy-format dashboard
+// for a dataset.
+func GeneratePromDashboard(ds DsInfoEntry) Dashboard {
+	panels := []Panel{}
+	panelID := 1
+	yPos := 0
+
+	// README panel: dataset definition and overflow explanation
+	readme := buildReadmePanel(panelID, ds)
+	readme.GridPos.Y = yPos
+	panels = append(panels, readme)
+	panelID++
+	yPos += readme.GridPos.H
+
+	for _, metric := range panelMetrics {
+		meta := metaFor(metric)
+		panel := buildPromPanel(panelID, ds, metric, meta)
+		panel.GridPos.Y = yPos
+		panels = append(panels, panel)
+		panelID++
+		yPos += 8
+	}
+
+	// Build human-readable attribute list for the description using translated tag names.
+	translatedAttrs := make([]string, len(ds.Metrics))
+	for i, a := range ds.Metrics {
+		translatedAttrs[i] = influxTagName(a)
+	}
+	attrStr := strings.Join(translatedAttrs, ", ")
+
+	title := fmt.Sprintf("Partitioned Performance: %s (Prometheus)", ds.Name)
+	description := fmt.Sprintf("Dataset %d (%s) – breakout by %s", ds.Id, ds.Name, attrStr)
+
+	return Dashboard{
+		Inputs: []DashInput{{
+			Name:        "DS_PROMETHEUS",
+			Label:       "Prometheus",
+			Description: "Prometheus datasource for PowerScale PP metrics",
+			Type:        "datasource",
+			PluginID:    "prometheus",
+			PluginName:  "Prometheus",
+		}},
+		Requires: []DashRequire{
+			{Type: "grafana", ID: "grafana", Name: "Grafana", Version: "10.0.0"},
+			{Type: "datasource", ID: "prometheus", Name: "Prometheus", Version: "1.0.0"},
+			{Type: "panel", ID: "timeseries", Name: "Time series", Version: ""},
+		},
+		ID:            nil,
+		UID:           nil,
+		Title:         title,
+		Description:   description,
+		Tags:          []string{"goppstats", "powerscale", "prometheus"},
+		SchemaVersion: 39,
+		Version:       1,
+		Editable:      true,
+		GraphTooltip:  1,
+		Time:          map[string]string{"from": "now-30m", "to": "now"},
+		Timepicker:    map[string]any{},
+		Refresh:       "30s",
+		FiscalYearStartMonth: 0,
+		Templating: Templating{
+			List: []TemplateVar{
+				buildPromClusterVariable(ds),
 				buildOverflowVariable(),
 			},
 		},
@@ -634,7 +987,14 @@ func main() {
 	log.Printf("Dataset %d: name=%q statkey=%q filters=%v metrics=%v",
 		ds.Id, ds.Name, ds.StatKey, ds.Filters, ds.Metrics)
 
-	dash := GenerateDashboard(ds)
+	var dash Dashboard
+	if cfg.Backend == "prometheus" {
+		log.Printf("Generating Prometheus dashboard for dataset %d...", cfg.DatasetID)
+		dash = GeneratePromDashboard(ds)
+	} else {
+		log.Printf("Generating InfluxDB dashboard for dataset %d...", cfg.DatasetID)
+		dash = GenerateDashboard(ds)
+	}
 
 	var out *os.File
 	if cfg.OutFile != "" {
