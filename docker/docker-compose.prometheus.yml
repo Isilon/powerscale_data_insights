@@ -1,0 +1,71 @@
+# docker-compose.prometheus.yml — PowerScale Data Insights Prometheus stack
+#
+# Brings up Prometheus, Grafana, gostats, and goppstats in one command.
+#
+# Before starting:
+#   1. Copy the Prometheus example configs and add your cluster details:
+#        cp gostats.prometheus.example.toml  gostats.prometheus.toml
+#        cp goppstats.prometheus.example.toml goppstats.prometheus.toml
+#   2. In each file, set hostname, username, password under [[cluster]].
+#      Each cluster needs a unique prometheus_port.
+#   3. Add matching scrape targets in prometheus/prometheus.yml.
+#
+# Usage:
+#   docker compose -f docker-compose.prometheus.yml up -d
+#
+# Then open Grafana at http://localhost:3000 (admin/admin).
+#
+# To stop:
+#   docker compose -f docker-compose.prometheus.yml down
+#
+# To stop and remove all data:
+#   docker compose -f docker-compose.prometheus.yml down -v
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9099:9090"
+    volumes:
+      - prometheus-data:/prometheus
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./prometheus/grafana-provisioning:/etc/grafana/provisioning:ro
+      - ../dashboards/prometheus:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  gostats:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gostats
+    volumes:
+      - ./gostats.prometheus.toml:/etc/gostats/idic.toml:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  goppstats:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.goppstats
+    volumes:
+      - ./goppstats.prometheus.toml:/etc/goppstats/goppstats.toml:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:

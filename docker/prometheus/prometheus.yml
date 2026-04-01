@@ -1,0 +1,30 @@
+# prometheus.yml — Prometheus scrape configuration for PowerScale Data Insights
+#
+# Scrapes gostats and goppstats Prometheus endpoints.
+# Each cluster has its own port on the collector container.
+# Add additional targets as you add clusters to the collector configs.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # gostats — one target per cluster (port = prometheus_port from config)
+  - job_name: gostats
+    static_configs:
+      - targets:
+          - gostats:9090
+          # Add more targets for additional clusters:
+          # - gostats:9091
+          # - gostats:9092
+          # - gostats:9093
+
+  # goppstats — one target per cluster (port = prometheus_port from config)
+  - job_name: goppstats
+    static_configs:
+      - targets:
+          - goppstats:9090
+          # Add more targets for additional clusters:
+          # - goppstats:9091
+          # - goppstats:9092
+          # - goppstats:9093
