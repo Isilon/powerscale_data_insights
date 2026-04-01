@@ -2,7 +2,7 @@
   "id": null,
   "uid": null,
   "title": "PowerScale - Client Summary Stats",
-  "description": "Per-client protocol activity, throughput, and latency",
+  "description": "Per-client protocol activity, throughput, and latency. Uses OneFS client summary statistics to identify busiest or highest-latency clients.",
   "tags": [
     "powerscale",
     "gostats",
@@ -45,12 +45,11 @@
           "type": "prometheus",
           "uid": "DS_PROMETHEUS"
         },
-        "query": "label_values(isilon_stat_cluster_health, cluster)",
-        "definition": "label_values(isilon_stat_cluster_health, cluster)",
+        "query": "label_values(isilon_stat_node_summary_client_operation_rate, cluster)",
+        "definition": "label_values(isilon_stat_node_summary_client_operation_rate, cluster)",
         "sort": 3,
         "multi": false,
         "includeAll": false,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
         "hide": 0
@@ -63,15 +62,15 @@
           "type": "prometheus",
           "uid": "DS_PROMETHEUS"
         },
-        "query": "label_values(isilon_stat_node_disk_busy_avg{cluster=~\"$cluster\"}, node)",
-        "definition": "label_values(isilon_stat_node_disk_busy_avg{cluster=~\"$cluster\"}, node)",
+        "query": "label_values(isilon_stat_node_summary_client_operation_rate{cluster=~\"$cluster\"}, node)",
+        "definition": "label_values(isilon_stat_node_summary_client_operation_rate{cluster=~\"$cluster\"}, node)",
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ".*"
       },
       {
         "name": "protocol",
@@ -86,10 +85,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ".*"
       }
     ]
   },
@@ -112,6 +111,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Client Summary Stats\n\nPer-client protocol activity, throughput, and latency from OneFS client summary statistics. Identifies busiest or highest-latency clients on the cluster.\n\nRequires `client = true` in the `[summary_stats]` section of the gostats collector configuration.\n\n**Cardinality warning:** Client summary stats have high tag/label cardinality (remote_addr x protocol x class x node). On large clusters with many clients this can impact database performance.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "Total Client Ops/s",
       "datasource": {
@@ -122,7 +141,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -168,7 +187,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "Average Latency",
       "datasource": {
@@ -179,7 +198,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -225,7 +244,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Inbound Throughput",
       "datasource": {
@@ -236,7 +255,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -281,7 +300,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Outbound Throughput",
       "datasource": {
@@ -292,7 +311,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -337,7 +356,295 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
+      "type": "table",
+      "title": "Top Clients",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "sum by (remote_addr) (isilon_stat_node_summary_client_operation_rate{cluster=~\"$cluster\",node=~\"$node\",protocol=~\"$protocol\"})",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "avg by (remote_addr) (isilon_stat_node_summary_client_time_avg{cluster=~\"$cluster\",node=~\"$node\",protocol=~\"$protocol\"}) / 1000",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "avg by (remote_addr) (isilon_stat_node_summary_client_time_max{cluster=~\"$cluster\",node=~\"$node\",protocol=~\"$protocol\"}) / 1000",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "sum by (remote_addr) (isilon_stat_node_summary_client_in{cluster=~\"$cluster\",node=~\"$node\",protocol=~\"$protocol\"})",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "sum by (remote_addr) (isilon_stat_node_summary_client_out{cluster=~\"$cluster\",node=~\"$node\",protocol=~\"$protocol\"})",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "remote_addr"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Client"
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ops/s"
+              },
+              {
+                "id": "unit",
+                "value": "ops"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Avg Latency (ms)"
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 10
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Max Latency (ms)"
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 200
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #D"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Inbound (B/s)"
+              },
+              {
+                "id": "unit",
+                "value": "Bps"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #E"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Outbound (B/s)"
+              },
+              {
+                "id": "unit",
+                "value": "Bps"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Ops/s",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": 7,
       "type": "timeseries",
       "title": "Operation Rate by Client",
       "datasource": {
@@ -348,7 +655,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 19
       },
       "targets": [
         {
@@ -381,7 +688,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -407,7 +715,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 8,
       "type": "timeseries",
       "title": "Average Latency by Client",
       "datasource": {
@@ -418,7 +726,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 27
       },
       "targets": [
         {
@@ -451,7 +759,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0
@@ -477,7 +786,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 9,
       "type": "timeseries",
       "title": "Operation Rate by Protocol",
       "datasource": {
@@ -488,7 +797,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 35
       },
       "targets": [
         {
@@ -521,7 +830,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -547,7 +857,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 10,
       "type": "timeseries",
       "title": "Average Latency by Protocol",
       "datasource": {
@@ -558,7 +868,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 43
       },
       "targets": [
         {
@@ -591,7 +901,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0
@@ -617,7 +928,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 11,
       "type": "timeseries",
       "title": "Operation Rate by Class",
       "datasource": {
@@ -628,7 +939,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 51
       },
       "targets": [
         {
@@ -661,7 +972,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -687,7 +999,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 12,
       "type": "timeseries",
       "title": "Average Latency by Class",
       "datasource": {
@@ -698,7 +1010,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 59
       },
       "targets": [
         {
@@ -731,7 +1043,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0
@@ -757,7 +1070,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 13,
       "type": "timeseries",
       "title": "Operation Rate by Node",
       "datasource": {
@@ -768,7 +1081,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 67
       },
       "targets": [
         {
@@ -801,7 +1114,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -827,7 +1141,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 14,
       "type": "timeseries",
       "title": "Average Latency by Node",
       "datasource": {
@@ -838,7 +1152,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 75
       },
       "targets": [
         {
@@ -871,7 +1185,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0

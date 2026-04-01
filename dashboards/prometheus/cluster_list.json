@@ -11,7 +11,7 @@
   "schemaVersion": 39,
   "version": 1,
   "editable": true,
-  "graphTooltip": 1,
+  "graphTooltip": 0,
   "timezone": "browser",
   "time": {
     "from": "now-15m",
@@ -49,10 +49,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ".*"
       }
     ]
   },
@@ -74,30 +74,49 @@
   },
   "panels": [
     {
-      "id": 200,
-      "type": "row",
-      "title": "Cluster: $cluster",
-      "collapsed": false,
-      "repeat": "cluster",
-      "repeatDirection": "h",
+      "id": 1,
+      "type": "text",
+      "title": "",
       "gridPos": {
-        "h": 1,
+        "h": 5,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "panels": []
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Cluster List\n\nMulti-cluster overview for Dell PowerScale clusters. Each cluster shows node count, health status, CPU utilisation, storage capacity, and NFS/SMB protocol statistics.\n\n* Use the **Cluster** dropdown to select one or more clusters.\n* Click a cluster name to navigate to the [Cluster Detail](/d/powerscale-cluster-detail/powerscale-cluster-detail) dashboard.\n* Click **WebUI** to open the cluster management interface.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
     },
     {
-      "id": 1,
+      "id": 200,
+      "type": "row",
+      "title": "Cluster: $cluster",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "panels": [],
+      "repeat": "cluster",
+      "repeatDirection": "h"
+    },
+    {
+      "id": 2,
       "type": "text",
       "title": "$cluster",
-      "transparent": true,
       "gridPos": {
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 1
+        "y": 6
       },
       "options": {
         "mode": "markdown",
@@ -107,10 +126,11 @@
           "showLineNumbers": false,
           "showMiniMap": false
         }
-      }
+      },
+      "transparent": true
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "Total Nodes",
       "datasource": {
@@ -121,7 +141,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 1
+        "y": 6
       },
       "targets": [
         {
@@ -131,64 +151,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_node_count_all{cluster=~\"$cluster\"}",
-          "legendFormat": "{{{{cluster}}}}",
-          "editorMode": "code"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "none",
-          "decimals": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "orientation": "auto",
-        "graphMode": "none",
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 3,
-      "type": "stat",
-      "title": "Nodes Down",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "DS_PROMETHEUS"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "DS_PROMETHEUS"
-          },
-          "expr": "isilon_stat_cluster_node_count_down{cluster=~\"$cluster\"}",
-          "legendFormat": "{{{{cluster}}}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -211,8 +174,71 @@
               }
             ]
           },
-          "unit": "none",
-          "decimals": 0
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "none",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Nodes Down",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_stat_cluster_node_count_down{cluster=~\"$cluster\"}",
+          "legendFormat": "",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(50, 172, 45, 0.97)",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 1
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 2
+              }
+            ]
+          },
+          "unit": "none"
         },
         "overrides": []
       },
@@ -232,7 +258,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Alert Status",
       "datasource": {
@@ -243,7 +269,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 1
+        "y": 6
       },
       "targets": [
         {
@@ -253,7 +279,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_health{cluster=~\"$cluster\"}",
-          "legendFormat": "{{{{cluster}}}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -278,6 +304,39 @@
           },
           "unit": "none",
           "mappings": [
+            {
+              "type": "range",
+              "options": {
+                "from": 0.0,
+                "to": 0.0,
+                "result": {
+                  "text": "Healthy",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0.0001,
+                "to": 1.999,
+                "result": {
+                  "text": "Attention",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 2.0,
+                "to": 5.0,
+                "result": {
+                  "text": "Down",
+                  "index": 2
+                }
+              }
+            },
             {
               "type": "value",
               "options": {
@@ -315,7 +374,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "gauge",
       "title": "Cluster CPU",
       "datasource": {
@@ -326,7 +385,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 1
+        "y": 6
       },
       "targets": [
         {
@@ -336,7 +395,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "1 - isilon_stat_cluster_cpu_idle_avg{cluster=~\"$cluster\"} / 1000",
-          "legendFormat": "{{{{cluster}}}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -379,7 +438,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "gauge",
       "title": "Cluster Capacity",
       "datasource": {
@@ -390,7 +449,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 1
+        "y": 6
       },
       "targets": [
         {
@@ -400,7 +459,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "100 - isilon_stat_ifs_percent_avail{cluster=~\"$cluster\"}",
-          "legendFormat": "{{{{cluster}}}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -443,7 +502,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "stat",
       "title": "NFSv3 Throughput",
       "datasource": {
@@ -454,7 +513,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 5
+        "y": 10
       },
       "targets": [
         {
@@ -464,7 +523,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_protostats_nfs_total_in_rate{cluster=~\"$cluster\"} + isilon_stat_cluster_protostats_nfs_total_out_rate{cluster=~\"$cluster\"}",
-          "legendFormat": "{{cluster}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -474,69 +533,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(245, 54, 54, 0.9)",
                 "value": null
               }
             ]
           },
           "unit": "Bps"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "orientation": "auto",
-        "graphMode": "area",
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 8,
-      "type": "stat",
-      "title": "NFSv3 Op/s",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "DS_PROMETHEUS"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "DS_PROMETHEUS"
-          },
-          "expr": "isilon_stat_cluster_protostats_nfs_total_op_rate{cluster=~\"$cluster\"}",
-          "legendFormat": "{{cluster}}",
-          "editorMode": "code"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "ops",
-          "decimals": 0
         },
         "overrides": []
       },
@@ -558,6 +560,62 @@
     {
       "id": 9,
       "type": "stat",
+      "title": "NFSv3 Op/s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_stat_cluster_protostats_nfs_total_op_rate{cluster=~\"$cluster\"}",
+          "legendFormat": "",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
       "title": "NFSv3 Latency",
       "datasource": {
         "type": "prometheus",
@@ -567,7 +625,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 5
+        "y": 10
       },
       "targets": [
         {
@@ -577,7 +635,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_protostats_nfs_total_time_avg{cluster=~\"$cluster\"} / 1000",
-          "legendFormat": "{{cluster}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -600,8 +658,7 @@
               }
             ]
           },
-          "unit": "ms",
-          "decimals": 1
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -621,7 +678,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "stat",
       "title": "SMB2 Throughput",
       "datasource": {
@@ -632,7 +689,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 5
+        "y": 10
       },
       "targets": [
         {
@@ -642,7 +699,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_protostats_smb2_total_in_rate{cluster=~\"$cluster\"} + isilon_stat_cluster_protostats_smb2_total_out_rate{cluster=~\"$cluster\"}",
-          "legendFormat": "{{cluster}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -652,7 +709,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(245, 54, 54, 0.9)",
                 "value": null
               }
             ]
@@ -677,7 +734,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": "stat",
       "title": "SMB2 Op/s",
       "datasource": {
@@ -688,7 +745,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 5
+        "y": 10
       },
       "targets": [
         {
@@ -698,7 +755,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_protostats_smb2_total_op_rate{cluster=~\"$cluster\"}",
-          "legendFormat": "{{cluster}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -708,13 +765,12 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(245, 54, 54, 0.9)",
                 "value": null
               }
             ]
           },
-          "unit": "ops",
-          "decimals": 0
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -734,7 +790,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": "stat",
       "title": "SMB2 Latency",
       "datasource": {
@@ -745,7 +801,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 5
+        "y": 10
       },
       "targets": [
         {
@@ -755,7 +811,7 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_cluster_protostats_smb2_total_time_avg{cluster=~\"$cluster\"} / 1000",
-          "legendFormat": "{{cluster}}",
+          "legendFormat": "",
           "editorMode": "code"
         }
       ],
@@ -778,8 +834,7 @@
               }
             ]
           },
-          "unit": "ms",
-          "decimals": 1
+          "unit": "ms"
         },
         "overrides": []
       },

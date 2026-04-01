@@ -65,10 +65,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": "",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ""
       }
     ]
   },
@@ -91,6 +91,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - System Workload (PP Dataset 0)\n\nOneFS system process resource consumption from Partitioned Performance\nDataset 0. This dataset is predefined and always available on OneFS 9.x+ clusters \u2014 no PP dataset configuration needed.\n\nShows which daemons and system processes consume CPU, perform I/O, and generate latency. Useful for identifying runaway system processes.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "Total CPU",
       "datasource": {
@@ -101,7 +121,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -147,7 +167,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "Total Ops",
       "datasource": {
@@ -158,7 +178,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -204,7 +224,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Total Bytes In",
       "datasource": {
@@ -215,7 +235,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -260,7 +280,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Total Bytes Out",
       "datasource": {
@@ -271,7 +291,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -316,7 +336,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "timeseries",
       "title": "CPU by System Process",
       "datasource": {
@@ -327,7 +347,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
@@ -361,8 +381,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "CPU (ms)"
+            }
           },
           "unit": "ms",
           "min": 0
@@ -388,7 +407,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "timeseries",
       "title": "Operations by System Process",
       "datasource": {
@@ -399,7 +418,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "targets": [
         {
@@ -433,8 +452,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Ops"
+            }
           },
           "unit": "ops",
           "min": 0
@@ -460,7 +478,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "timeseries",
       "title": "Reads and Writes by System Process",
       "datasource": {
@@ -471,7 +489,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "targets": [
         {
@@ -516,8 +534,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Count"
+            }
           },
           "unit": "short",
           "min": 0
@@ -543,7 +560,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "Bytes In (Write) by System Process",
       "datasource": {
@@ -554,7 +571,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 32
       },
       "targets": [
         {
@@ -588,8 +605,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Throughput"
+            }
           },
           "unit": "Bps",
           "min": 0
@@ -615,7 +631,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "timeseries",
       "title": "Bytes Out (Read) by System Process",
       "datasource": {
@@ -626,7 +642,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 40
       },
       "targets": [
         {
@@ -660,8 +676,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Throughput"
+            }
           },
           "unit": "Bps",
           "min": 0
@@ -687,7 +702,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "timeseries",
       "title": "Read Latency by System Process",
       "datasource": {
@@ -698,7 +713,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 48
       },
       "targets": [
         {
@@ -732,8 +747,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Latency"
+            }
           },
           "unit": "ms",
           "min": 0
@@ -759,7 +773,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": "timeseries",
       "title": "Write Latency by System Process",
       "datasource": {
@@ -770,7 +784,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 56
       },
       "targets": [
         {
@@ -804,8 +818,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Latency"
+            }
           },
           "unit": "ms",
           "min": 0
@@ -831,7 +844,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": "timeseries",
       "title": "Other Latency by System Process",
       "datasource": {
@@ -842,7 +855,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 64
       },
       "targets": [
         {
@@ -876,8 +889,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Latency"
+            }
           },
           "unit": "ms",
           "min": 0
@@ -903,7 +915,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "timeseries",
       "title": "L2 Cache Hits by System Process",
       "datasource": {
@@ -914,7 +926,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 72
       },
       "targets": [
         {
@@ -948,8 +960,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "L2 Hits/s"
+            }
           },
           "unit": "ops",
           "min": 0
@@ -975,7 +986,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "type": "timeseries",
       "title": "L3 Cache Hits by System Process",
       "datasource": {
@@ -986,7 +997,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 76
+        "y": 80
       },
       "targets": [
         {
@@ -1020,8 +1031,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "L3 Hits/s"
+            }
           },
           "unit": "ops",
           "min": 0
@@ -1047,7 +1057,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 16,
       "type": "timeseries",
       "title": "Total CPU by Node",
       "datasource": {
@@ -1058,7 +1068,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 84
+        "y": 88
       },
       "targets": [
         {
@@ -1092,8 +1102,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "CPU (ms)"
+            }
           },
           "unit": "ms",
           "min": 0

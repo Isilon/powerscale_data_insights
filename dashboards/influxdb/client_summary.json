@@ -66,10 +66,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": "",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ""
       },
       {
         "name": "protocol",
@@ -84,10 +84,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": "",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ""
       }
     ]
   },
@@ -110,6 +110,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Client Summary Stats\n\nPer-client protocol activity, throughput, and latency from OneFS client summary statistics. Identifies busiest or highest-latency clients on the cluster.\n\nRequires `client = true` in the `[summary_stats]` section of the gostats collector configuration.\n\n**Cardinality warning:** Client summary stats have high tag/label cardinality (remote_addr x protocol x class x node). On large clusters with many clients this can impact database performance.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "Total Client Ops/s",
       "datasource": {
@@ -120,7 +140,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -166,7 +186,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "Average Latency",
       "datasource": {
@@ -177,7 +197,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -223,7 +243,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Inbound Throughput",
       "datasource": {
@@ -234,7 +254,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -279,7 +299,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Outbound Throughput",
       "datasource": {
@@ -290,7 +310,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 5
       },
       "targets": [
         {
@@ -335,10 +355,9 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "table",
       "title": "Top Clients",
-      "description": "Per-client summary sorted by ops/s. Identify the busiest clients or those experiencing the highest latency.",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -347,7 +366,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 9
       },
       "targets": [
         {
@@ -571,12 +590,6 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Ops/s",
-            "desc": true
-          }
-        ],
         "footer": {
           "show": false,
           "reducer": [
@@ -584,7 +597,13 @@
           ],
           "countRows": false,
           "fields": ""
-        }
+        },
+        "sortBy": [
+          {
+            "displayName": "Ops/s",
+            "desc": true
+          }
+        ]
       },
       "transformations": [
         {
@@ -594,7 +613,7 @@
       ]
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "timeseries",
       "title": "Operation Rate by Client",
       "datasource": {
@@ -605,7 +624,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 19
       },
       "targets": [
         {
@@ -666,7 +685,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "timeseries",
       "title": "Average Latency by Client",
       "datasource": {
@@ -677,7 +696,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 27
       },
       "targets": [
         {
@@ -738,7 +757,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "Operation Rate by Protocol",
       "datasource": {
@@ -749,7 +768,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 30
+        "y": 35
       },
       "targets": [
         {
@@ -810,7 +829,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "timeseries",
       "title": "Average Latency by Protocol",
       "datasource": {
@@ -821,7 +840,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 43
       },
       "targets": [
         {
@@ -882,7 +901,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "timeseries",
       "title": "Operation Rate by Class",
       "datasource": {
@@ -893,7 +912,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 46
+        "y": 51
       },
       "targets": [
         {
@@ -954,7 +973,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": "timeseries",
       "title": "Average Latency by Class",
       "datasource": {
@@ -965,7 +984,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 59
       },
       "targets": [
         {
@@ -1026,7 +1045,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": "timeseries",
       "title": "Operation Rate by Node",
       "datasource": {
@@ -1037,7 +1056,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 67
       },
       "targets": [
         {
@@ -1098,7 +1117,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "timeseries",
       "title": "Average Latency by Node",
       "datasource": {
@@ -1109,7 +1128,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 75
       },
       "targets": [
         {

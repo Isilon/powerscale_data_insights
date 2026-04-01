@@ -45,7 +45,6 @@
         },
         "query": "SHOW TAG VALUES WITH KEY = \"cluster\"",
         "definition": "SHOW TAG VALUES WITH KEY = \"cluster\"",
-        "regex": "",
         "sort": 3,
         "multi": false,
         "includeAll": false,
@@ -63,14 +62,13 @@
         },
         "query": "SHOW TAG VALUES FROM \"node.disk.busy.avg\" WITH KEY = \"node\" WHERE \"cluster\" =~ /^$cluster$/",
         "definition": "SHOW TAG VALUES FROM \"node.disk.busy.avg\" WITH KEY = \"node\" WHERE \"cluster\" =~ /^$cluster$/",
-        "regex": "",
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": "",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ""
       }
     ]
   },
@@ -93,6 +91,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Drive Statistics\n\nPer-node disk performance using `node.disk.*` stats (always collected). Shows disk access latency, I/O scheduler latency and queue depth, disk utilization, throughput, IOPS, I/O size, and slow accesses per node.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "Total Disk IOPS",
       "datasource": {
@@ -103,7 +121,7 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -149,7 +167,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "Disk Read IOPS",
       "datasource": {
@@ -160,7 +178,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -206,7 +224,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Disk Write IOPS",
       "datasource": {
@@ -217,7 +235,7 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -263,7 +281,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Disk Read Throughput",
       "datasource": {
@@ -274,7 +292,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
@@ -320,7 +338,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "stat",
       "title": "Disk Write Throughput",
       "datasource": {
@@ -331,7 +349,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
@@ -377,10 +395,9 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "table",
       "title": "Node Disk Health Summary",
-      "description": "Current disk metrics per node. Sorted by access latency (worst first). Color thresholds highlight problem nodes.",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -389,7 +406,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 12
       },
       "targets": [
         {
@@ -686,12 +703,6 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Access Latency (ms)",
-            "desc": true
-          }
-        ],
         "footer": {
           "show": false,
           "reducer": [
@@ -699,7 +710,13 @@
           ],
           "countRows": false,
           "fields": ""
-        }
+        },
+        "sortBy": [
+          {
+            "displayName": "Access Latency (ms)",
+            "desc": true
+          }
+        ]
       },
       "transformations": [
         {
@@ -709,7 +726,7 @@
       ]
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "timeseries",
       "title": "Disk Access Latency by Node",
       "datasource": {
@@ -720,7 +737,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 22
       },
       "targets": [
         {
@@ -781,7 +798,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "I/O Scheduler Latency by Node",
       "datasource": {
@@ -792,7 +809,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 30
       },
       "targets": [
         {
@@ -853,7 +870,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "timeseries",
       "title": "I/O Scheduler Queue Depth by Node",
       "datasource": {
@@ -864,7 +881,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 38
       },
       "targets": [
         {
@@ -925,7 +942,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "timeseries",
       "title": "Disk Busy % by Node",
       "datasource": {
@@ -936,7 +953,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 46
       },
       "targets": [
         {
@@ -998,7 +1015,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": "timeseries",
       "title": "Disk Throughput by Node",
       "datasource": {
@@ -1009,7 +1026,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 54
       },
       "targets": [
         {
@@ -1055,7 +1072,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Throughput"
+            "axisLabel": "Read (+) / Write (-)"
           },
           "unit": "Bps"
         },
@@ -1080,7 +1097,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": "timeseries",
       "title": "Disk IOPS by Node",
       "datasource": {
@@ -1091,7 +1108,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 62
       },
       "targets": [
         {
@@ -1137,7 +1154,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "IOPS"
+            "axisLabel": "Read (+) / Write (-)"
           },
           "unit": "ops"
         },
@@ -1162,7 +1179,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "timeseries",
       "title": "Average I/O Size by Node",
       "datasource": {
@@ -1173,7 +1190,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 70
       },
       "targets": [
         {
@@ -1245,7 +1262,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "type": "timeseries",
       "title": "Slow Disk Accesses by Node",
       "datasource": {
@@ -1256,7 +1273,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 78
       },
       "targets": [
         {

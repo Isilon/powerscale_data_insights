@@ -34,3 +34,7 @@ docker/goppstats.prometheus.toml
 
 # Test output
 test-dash.json
+
+# Python
+__pycache__/
+*.pyc

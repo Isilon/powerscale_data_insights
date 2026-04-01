@@ -45,7 +45,6 @@
         },
         "query": "SHOW TAG VALUES WITH KEY = \"cluster\"",
         "definition": "SHOW TAG VALUES WITH KEY = \"cluster\"",
-        "regex": "",
         "sort": 1,
         "multi": false,
         "includeAll": false,
@@ -73,53 +72,18 @@
   },
   "panels": [
     {
-      "id": 100,
-      "type": "row",
-      "title": "Welcome to the PowerScale Cluster Detail Dashboard",
-      "collapsed": true,
+      "id": 1,
+      "type": "text",
+      "title": "",
       "gridPos": {
-        "h": 1,
+        "h": 4,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "panels": [
-        {
-          "id": 101,
-          "type": "text",
-          "title": "Welcome to the PowerScale Cluster Detail Dashboard",
-          "gridPos": {
-            "h": 6,
-            "w": 24,
-            "x": 0,
-            "y": 1
-          },
-          "options": {
-            "mode": "markdown",
-            "content": "* Use the pull down at the very top left of the page (next to the spiral icon) to select which dashboard you want to look at.\n* Use the cluster and other pull downs to select the cluster and protocol of interest.\n* Use highlight with your mouse the time period you want to zoom into or use the pull downs at the top right to select specific time periods.\n* Note that by default the dates and time displayed are in your browser\u2019s time zone, not the source cluster.   You can get it to display in UTC via the settings under the little gear symbol at the top of the page.\n* You can hide rows using the green slide-out tab to the left of each chart.\n* If there is a legend displayed you can click on elements within it to hide or display items, etc.\n* Click on the title of the chart and then the horizontal bars icon at the left to show/hide the legend and get a CSV export of the data.\n* There is no significance in whether things are displayed as lines, bars or points - we have used whatever seems to be clearest for the data.\n",
-            "code": {
-              "language": "plaintext",
-              "showLineNumbers": false,
-              "showMiniMap": false
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 1,
-      "type": "text",
-      "title": "$cluster",
-      "transparent": true,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
       "options": {
         "mode": "markdown",
-        "content": "### $cluster\n\n[WebUI](https://$cluster:8080/)",
+        "content": "## PowerScale - Cluster Detail\n\nDetailed performance dashboard for a single Dell PowerScale cluster. Select the cluster using the dropdown above.\n\nShows CPU breakdown, protocol operations, client connections, network traffic, file system events, cache hit ratios, and more.",
         "code": {
           "language": "plaintext",
           "showLineNumbers": false,
@@ -129,6 +93,27 @@
     },
     {
       "id": 2,
+      "type": "text",
+      "title": "$cluster",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### $cluster\n\n[WebUI](https://$cluster:8080/)",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      },
+      "transparent": true
+    },
+    {
+      "id": 3,
       "type": "stat",
       "title": "Total Nodes",
       "datasource": {
@@ -139,7 +124,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -148,9 +133,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"value\") FROM \"cluster.node.count.all\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT mean(\"value\") FROM \"cluster.node.count.all\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -164,11 +149,11 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 1.0
+                "value": 1
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 2.0
+                "value": 2
               }
             ]
           },
@@ -192,7 +177,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Nodes Down",
       "datasource": {
@@ -203,7 +188,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -212,9 +197,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"value\") FROM \"cluster.node.count.down\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT mean(\"value\") FROM \"cluster.node.count.down\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -228,11 +213,11 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 1.0
+                "value": 1
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 2.0
+                "value": 2
               }
             ]
           },
@@ -256,7 +241,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Alert Status",
       "datasource": {
@@ -267,7 +252,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -276,9 +261,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT max(\"value\") FROM \"cluster.health\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT max(\"value\") FROM \"cluster.health\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -296,7 +281,7 @@
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 2.0
+                "value": 2
               }
             ]
           },
@@ -372,7 +357,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "gauge",
       "title": "Cluster CPU",
       "datasource": {
@@ -383,7 +368,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -392,9 +377,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT 1.0 - mean(\"value\")  / 1000 FROM \"cluster.cpu.idle.avg\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT 1.0 - mean(\"value\")  / 1000 FROM \"cluster.cpu.idle.avg\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -430,14 +415,13 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "value",
         "orientation": "auto",
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "gauge",
       "title": "Cluster Capacity Utilization",
       "datasource": {
@@ -448,7 +432,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -457,9 +441,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT 100.0 - mean(\"value\") FROM \"ifs.percent.avail\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT 100.0 - mean(\"value\") FROM \"ifs.percent.avail\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -473,11 +457,11 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 80.0
+                "value": 80
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 90.0
+                "value": 90
               }
             ]
           },
@@ -495,14 +479,13 @@
           "fields": "",
           "values": false
         },
-        "colorMode": "value",
         "orientation": "auto",
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "stat",
       "title": "NFSv3 Throughput",
       "datasource": {
@@ -513,7 +496,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -522,9 +505,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"in_rate\") + mean(\"out_rate\") FROM \"cluster.protostats.nfs.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT mean(\"in_rate\") + mean(\"out_rate\") FROM \"cluster.protostats.nfs.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -538,79 +521,15 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10.0
+                "value": 10
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25.0
+                "value": 25
               }
             ]
           },
           "unit": "Bps"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "orientation": "auto",
-        "graphMode": "area",
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 8,
-      "type": "stat",
-      "title": "NFSv3 Op/s",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "DS_INFLUXDB"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 4,
-        "y": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "resultFormat": "time_series",
-          "rawQuery": true,
-          "query": "SELECT mean(\"op_rate\") FROM \"cluster.protostats.nfs.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "rgba(50, 172, 45, 0.97)",
-                "value": null
-              },
-              {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10.0
-              },
-              {
-                "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25.0
-              }
-            ]
-          },
-          "unit": "ops"
         },
         "overrides": []
       },
@@ -632,7 +551,7 @@
     {
       "id": 9,
       "type": "stat",
-      "title": "NFSv3 Latency",
+      "title": "NFSv3 Op/s",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -640,8 +559,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 8,
-        "y": 5
+        "x": 4,
+        "y": 8
       },
       "targets": [
         {
@@ -650,9 +569,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") /1000 FROM \"cluster.protostats.nfs.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT mean(\"op_rate\") FROM \"cluster.protostats.nfs.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -666,139 +585,11 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10.0
+                "value": 10
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25.0
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "background",
-        "orientation": "auto",
-        "graphMode": "area",
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 10,
-      "type": "stat",
-      "title": "SMB2 Throughput",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "DS_INFLUXDB"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "resultFormat": "time_series",
-          "rawQuery": true,
-          "query": "SELECT mean(\"in_rate\") + mean(\"out_rate\") FROM \"cluster.protostats.smb2.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "rgba(50, 172, 45, 0.97)",
-                "value": null
-              },
-              {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10.0
-              },
-              {
-                "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25.0
-              }
-            ]
-          },
-          "unit": "Bps"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "orientation": "auto",
-        "graphMode": "area",
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 11,
-      "type": "stat",
-      "title": "SMB2 Op/s",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "DS_INFLUXDB"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 5
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "resultFormat": "time_series",
-          "rawQuery": true,
-          "query": "SELECT mean(\"op_rate\") FROM \"cluster.protostats.smb2.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "rgba(50, 172, 45, 0.97)",
-                "value": null
-              },
-              {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10.0
-              },
-              {
-                "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25.0
+                "value": 25
               }
             ]
           },
@@ -822,9 +613,9 @@
       }
     },
     {
-      "id": 12,
+      "id": 10,
       "type": "stat",
-      "title": "SMB2 Latency",
+      "title": "NFSv3 Latency",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -832,8 +623,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 20,
-        "y": 5
+        "x": 8,
+        "y": 8
       },
       "targets": [
         {
@@ -842,9 +633,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") /1000 FROM \"cluster.protostats.smb2.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)"
+          "query": "SELECT mean(\"time_avg\") /1000 FROM \"cluster.protostats.nfs.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
@@ -858,11 +649,11 @@
               },
               {
                 "color": "rgba(237, 129, 40, 0.89)",
-                "value": 10.0
+                "value": 10
               },
               {
                 "color": "rgba(245, 54, 54, 0.9)",
-                "value": 25.0
+                "value": 25
               }
             ]
           },
@@ -886,7 +677,199 @@
       }
     },
     {
+      "id": 11,
+      "type": "stat",
+      "title": "SMB2 Throughput",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"in_rate\") + mean(\"out_rate\") FROM \"cluster.protostats.smb2.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(50, 172, 45, 0.97)",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "SMB2 Op/s",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"op_rate\") FROM \"cluster.protostats.smb2.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(50, 172, 45, 0.97)",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
       "id": 13,
+      "type": "stat",
+      "title": "SMB2 Latency",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"time_avg\") /1000 FROM \"cluster.protostats.smb2.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(50, 172, 45, 0.97)",
+                "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 14,
       "type": "timeseries",
       "title": "Cluster Capacity Utilization",
       "datasource": {
@@ -897,7 +880,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 12
       },
       "targets": [
         {
@@ -906,9 +889,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT 100.0 - mean(\"value\") FROM \"ifs.percent.avail\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Cluster Capacity Utilization"
         }
       ],
@@ -931,8 +914,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Cluster Capacity Utilization"
+            }
           },
           "unit": "percent",
           "min": 0
@@ -958,7 +940,7 @@
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "type": "timeseries",
       "title": "Cluster CPU for $cluster",
       "datasource": {
@@ -969,7 +951,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 20
       },
       "targets": [
         {
@@ -978,9 +960,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") / 1000 FROM \"cluster.cpu.intr.avg\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Interrupt"
         },
         {
@@ -989,9 +971,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") / 1000 FROM \"cluster.cpu.sys.avg\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "System"
         },
         {
@@ -1000,9 +982,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") / 1000 FROM \"cluster.cpu.user.avg\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "User"
         },
         {
@@ -1011,9 +993,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") / 1000 FROM \"cluster.cpu.idle.avg\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Idle"
         }
       ],
@@ -1109,7 +1091,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 16,
       "type": "timeseries",
       "title": "Cluster Protocol Operations and CPU for $cluster",
       "datasource": {
@@ -1120,7 +1102,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 28
       },
       "targets": [
         {
@@ -1129,9 +1111,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT 1.0 - mean(\"value\") / 1000.0 FROM \"cluster.cpu.idle.avg\" WHERE \"cluster\" =~ /$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "CPU",
           "hide": true
         },
@@ -1141,9 +1123,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"op_rate\") FROM /cluster\\.protostats\\.(.*)\\.total/ WHERE \"cluster\" =~ /$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "$2 ops"
         }
       ],
@@ -1155,7 +1137,7 @@
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
-            "pointSize": 1,
+            "pointSize": 5,
             "spanNulls": true,
             "stacking": {
               "mode": "none",
@@ -1166,8 +1148,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Protocol Operations per Second"
+            }
           },
           "unit": "ops",
           "min": 0
@@ -1186,35 +1167,28 @@
               {
                 "id": "custom.fillOpacity",
                 "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "CPU"
-            },
-            "properties": [
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
               {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
                   "fixedColor": "#7EB26D"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "CPU Idle:"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#508642"
                 }
               }
             ]
@@ -1240,7 +1214,7 @@
       }
     },
     {
-      "id": 16,
+      "id": 17,
       "type": "timeseries",
       "title": "Active Client Connections by Protocol for $cluster",
       "datasource": {
@@ -1251,7 +1225,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 36
       },
       "targets": [
         {
@@ -1260,9 +1234,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT sum(\"value\") FROM /node.clientstats.active.(.*)/ WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time(30s) fill(null)",
+          "resultFormat": "time_series",
           "alias": "$3 connections"
         }
       ],
@@ -1274,7 +1248,7 @@
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
-            "pointSize": 1,
+            "pointSize": 5,
             "spanNulls": true,
             "stacking": {
               "mode": "none",
@@ -1285,8 +1259,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Connections"
+            }
           },
           "unit": "short"
         },
@@ -1311,7 +1284,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 18,
       "type": "timeseries",
       "title": "Open Files for $cluster",
       "datasource": {
@@ -1322,7 +1295,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 44
       },
       "targets": [
         {
@@ -1331,9 +1304,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"node.open.files\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time(30s) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Open files"
         }
       ],
@@ -1345,7 +1318,7 @@
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
-            "pointSize": 1,
+            "pointSize": 5,
             "spanNulls": true,
             "stacking": {
               "mode": "none",
@@ -1356,8 +1329,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Open File Count"
+            }
           },
           "unit": "short",
           "min": 0
@@ -1383,7 +1355,7 @@
       }
     },
     {
-      "id": 18,
+      "id": 19,
       "type": "timeseries",
       "title": "Cluster Network Traffic for $cluster",
       "datasource": {
@@ -1394,7 +1366,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 52
       },
       "targets": [
         {
@@ -1403,9 +1375,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT (mean(\"value\")) * -1 FROM \"cluster.net.ext.packets.in.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Packets In:",
           "hide": true
         },
@@ -1415,9 +1387,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT (mean(\"value\")) * -1 FROM \"cluster.net.ext.bytes.in.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Bytes In:"
         },
         {
@@ -1426,9 +1398,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"cluster.net.ext.packets.out.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Packets Out:",
           "hide": true
         },
@@ -1438,9 +1410,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"cluster.net.ext.bytes.out.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Bytes Out:"
         }
       ],
@@ -1464,7 +1436,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Throughput"
+            "axisLabel": "Read (+) / Write (-)"
           },
           "unit": "Bps"
         },
@@ -1506,7 +1478,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 20,
       "type": "timeseries",
       "title": "Cluster Network, File System and Disk Throughput for $cluster",
       "datasource": {
@@ -1517,7 +1489,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 60
       },
       "targets": [
         {
@@ -1526,9 +1498,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"cluster.net.ext.bytes.out.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Network Read"
         },
         {
@@ -1537,9 +1509,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"ifs.bytes.out.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "IFS Read"
         },
         {
@@ -1548,9 +1520,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"cluster.disk.bytes.out.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Disk Read"
         },
         {
@@ -1559,9 +1531,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT (mean(\"value\")) * -1 FROM \"cluster.net.ext.bytes.in.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Network Write"
         },
         {
@@ -1570,9 +1542,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT (mean(\"value\")) * -1 FROM \"ifs.bytes.in.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "IFS Write"
         },
         {
@@ -1581,9 +1553,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT (mean(\"value\")) * -1 FROM \"cluster.disk.bytes.in.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Disk Write"
         }
       ],
@@ -1607,7 +1579,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Throughput"
+            "axisLabel": "Read (+) / Write (-)"
           },
           "unit": "Bps"
         },
@@ -1632,7 +1604,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 21,
       "type": "timeseries",
       "title": "Cluster Network Errors for $cluster",
       "datasource": {
@@ -1643,7 +1615,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 68
       },
       "targets": [
         {
@@ -1652,9 +1624,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"cluster.net.ext.errors.in.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Inbound Errors"
         },
         {
@@ -1663,9 +1635,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"value\") FROM \"cluster.net.ext.errors.out.rate\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Outbound Errors"
         }
       ],
@@ -1677,7 +1649,7 @@
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
-            "pointSize": 2,
+            "pointSize": 5,
             "spanNulls": true,
             "stacking": {
               "mode": "none",
@@ -1688,8 +1660,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Errors per Second"
+            }
           },
           "unit": "short",
           "min": 0
@@ -1724,36 +1695,6 @@
                 }
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cluster.net.ext.bytes.out.rate.mean"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#E24D42"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "cluster.net.ext.errors.in.rate.mean"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#BF1B00"
-                }
-              }
-            ]
           }
         ]
       },
@@ -1774,7 +1715,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 22,
       "type": "timeseries",
       "title": "Job Engine Activity for $cluster",
       "datasource": {
@@ -1785,7 +1726,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 73
+        "y": 76
       },
       "targets": [
         {
@@ -1794,9 +1735,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"op_rate\") FROM \"cluster.protostats.jobd.total\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Job Engine"
         }
       ],
@@ -1808,7 +1749,7 @@
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
-            "pointSize": 1,
+            "pointSize": 5,
             "spanNulls": false,
             "stacking": {
               "mode": "none",
@@ -1819,53 +1760,12 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Job Engine Operations per Second Count"
+            }
           },
           "unit": "ops",
           "min": 0
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "CPU"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "unit",
-                "value": "percentunit"
-              },
-              {
-                "id": "custom.drawStyle",
-                "value": "line"
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "CPU"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#7EB26D"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "legend": {
@@ -1881,12 +1781,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 22,
+      "id": 23,
       "type": "timeseries",
       "title": "OneFS File System Events",
       "datasource": {
@@ -1897,7 +1797,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 81
+        "y": 84
       },
       "targets": [
         {
@@ -1906,9 +1806,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT sum(\"value\") FROM /node.ifs.heat.(.*).total/ WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "$3"
         }
       ],
@@ -1956,7 +1856,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 24,
       "type": "timeseries",
       "title": "Cache Stats for $cluster",
       "datasource": {
@@ -1967,7 +1867,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 92
       },
       "targets": [
         {
@@ -1976,9 +1876,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT max(\"l1_data_prefetch_hit\") / max(\"l1_data_prefetch_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L1 Data Prefetch Hit Ratio"
         },
         {
@@ -1987,9 +1887,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"l1_meta_prefetch_hit\") / mean(\"l1_meta_prefetch_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L1 Meta-Data Prefetch Hit Ratio"
         },
         {
@@ -1998,9 +1898,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"l1_data_read_hit\") / mean(\"l1_data_read_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L1 Data Read Hit Ratio"
         },
         {
@@ -2009,9 +1909,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"l1_meta_read_hit\") / mean(\"l1_meta_read_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L1 Meta-Data Read Hit Ratio"
         },
         {
@@ -2020,9 +1920,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"l2_data_read_hit\") / mean(\"l2_data_read_start\")  FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"l2_data_read_hit\") / mean(\"l2_data_read_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L2 Data Read Hit Ratio"
         },
         {
@@ -2031,9 +1931,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"l2_meta_read_hit\") / mean(\"l2_meta_read_start\")  FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"l2_meta_read_hit\") / mean(\"l2_meta_read_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L2 Meta-Data Read Hit Ratio"
         },
         {
@@ -2042,9 +1942,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"l3_data_read_hit\") / mean(\"l3_data_read_start\")  FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"l3_data_read_hit\") / mean(\"l3_data_read_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L3 Data Read Hit Ratio"
         },
         {
@@ -2053,9 +1953,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
-          "query": "SELECT mean(\"l3_meta_read_hit\") / mean(\"l3_meta_read_start\")  FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"l3_meta_read_hit\") / mean(\"l3_meta_read_start\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "L3 Meta-Data Read Hit Ratio"
         },
         {
@@ -2064,9 +1964,9 @@
             "type": "influxdb",
             "uid": "DS_INFLUXDB"
           },
-          "resultFormat": "time_series",
           "rawQuery": true,
           "query": "SELECT mean(\"oldest_page_age\") FROM \"node.ifs.cache\" WHERE \"cluster\" =~ /^$cluster$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
           "alias": "Oldest Page Age"
         }
       ],
@@ -2092,8 +1992,7 @@
             }
           },
           "unit": "percentunit",
-          "min": 0,
-          "max": 0
+          "min": 0
         },
         "overrides": [
           {
@@ -2123,7 +2022,8 @@
             "max",
             "mean",
             "lastNotNull"
-          ]
+          ],
+          "width": 500
         },
         "tooltip": {
           "mode": "multi",

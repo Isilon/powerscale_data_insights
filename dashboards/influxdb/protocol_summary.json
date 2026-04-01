@@ -167,10 +167,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": "",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ""
       }
     ]
   },
@@ -193,6 +193,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Protocol Summary Stats\n\nPer-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev) from OneFS summary statistics.\n\nRequires `protocol = true` in the `[summary_stats]` section of the gostats collector configuration.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "$protocol Ops/s",
       "datasource": {
@@ -203,7 +223,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -213,7 +233,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series"
         }
       ],
@@ -249,7 +269,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "$protocol Avg Latency",
       "datasource": {
@@ -260,7 +280,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -270,7 +290,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series"
         }
       ],
@@ -306,7 +326,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "$protocol Inbound",
       "datasource": {
@@ -317,7 +337,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -327,63 +347,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"in\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
-          "resultFormat": "time_series"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "Bps"
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "orientation": "auto",
-        "graphMode": "area",
-        "textMode": "auto",
-        "wideLayout": true
-      }
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "$protocol Outbound",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "DS_INFLUXDB"
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "rawQuery": true,
-          "query": "SELECT sum(\"out\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT sum(\"in\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series"
         }
       ],
@@ -419,16 +383,16 @@
     },
     {
       "id": 5,
-      "type": "timeseries",
-      "title": "$protocol Operation Rate by Class",
+      "type": "stat",
+      "title": "$protocol Outbound",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
       },
       "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
+        "h": 4,
+        "w": 6,
+        "x": 18,
         "y": 4
       },
       "targets": [
@@ -439,60 +403,44 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"class\" fill(null)",
-          "resultFormat": "time_series",
-          "alias": "$tag_class"
+          "query": "SELECT sum(\"out\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "pointSize": 5,
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "gradientMode": "none",
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "axisLabel": "Ops/s"
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
-          "unit": "ops",
-          "min": 0
+          "unit": "Bps"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
+        "reduceOptions": {
           "calcs": [
-            "min",
-            "max",
-            "mean",
             "lastNotNull"
           ],
-          "width": 500
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
       }
     },
     {
       "id": 6,
       "type": "timeseries",
-      "title": "$protocol Operation Rate by Operation",
+      "title": "$protocol Operation Rate by Class",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -501,7 +449,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 8
       },
       "targets": [
         {
@@ -511,9 +459,9 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\" fill(null)",
+          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"class\"::tag fill(null)",
           "resultFormat": "time_series",
-          "alias": "$tag_operation"
+          "alias": "$tag_class"
         }
       ],
       "fieldConfig": {
@@ -564,7 +512,7 @@
     {
       "id": 7,
       "type": "timeseries",
-      "title": "$protocol Average Latency by Class",
+      "title": "$protocol Operation Rate by Operation",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -573,7 +521,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 16
       },
       "targets": [
         {
@@ -583,7 +531,79 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"class\" fill(null)",
+          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\"::tag fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_operation"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Ops/s"
+          },
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "$protocol Average Latency by Class",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"class\"::tag fill(null)",
           "resultFormat": "time_series",
           "alias": "$tag_class"
         }
@@ -634,7 +654,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "$protocol Average Latency by Operation",
       "datasource": {
@@ -645,7 +665,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 32
       },
       "targets": [
         {
@@ -655,114 +675,9 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\" fill(null)",
+          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\"::tag fill(null)",
           "resultFormat": "time_series",
           "alias": "$tag_operation"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "pointSize": 5,
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "gradientMode": "none",
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "axisLabel": "Latency"
-          },
-          "unit": "ms",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "min",
-            "max",
-            "mean",
-            "lastNotNull"
-          ],
-          "width": 500
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 9,
-      "type": "timeseries",
-      "title": "$protocol Latency Distribution (Avg / Max / Min)",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "DS_INFLUXDB"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
-          "resultFormat": "time_series",
-          "alias": "Average"
-        },
-        {
-          "refId": "B",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "rawQuery": true,
-          "query": "SELECT mean(\"time_max\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
-          "resultFormat": "time_series",
-          "alias": "Maximum"
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "rawQuery": true,
-          "query": "SELECT mean(\"time_min\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
-          "resultFormat": "time_series",
-          "alias": "Minimum"
-        },
-        {
-          "refId": "D",
-          "datasource": {
-            "type": "influxdb",
-            "uid": "DS_INFLUXDB"
-          },
-          "rawQuery": true,
-          "query": "SELECT mean(\"time_standard_dev\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
-          "resultFormat": "time_series",
-          "alias": "Std Dev"
         }
       ],
       "fieldConfig": {
@@ -813,7 +728,7 @@
     {
       "id": 10,
       "type": "timeseries",
-      "title": "$protocol Inbound (Write) Throughput by Operation",
+      "title": "$protocol Latency Distribution (Avg / Max / Min / StdDev)",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -822,7 +737,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 40
       },
       "targets": [
         {
@@ -832,9 +747,42 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"in\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\" fill(null)",
+          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
-          "alias": "$tag_operation"
+          "alias": "Average"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"time_max\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "Maximum"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"time_min\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "Minimum"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"time_standard_dev\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "Std Dev"
         }
       ],
       "fieldConfig": {
@@ -857,9 +805,9 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Throughput"
+            "axisLabel": "Latency"
           },
-          "unit": "Bps",
+          "unit": "ms",
           "min": 0
         },
         "overrides": []
@@ -885,7 +833,7 @@
     {
       "id": 11,
       "type": "timeseries",
-      "title": "$protocol Outbound (Read) Throughput by Operation",
+      "title": "$protocol Inbound (Write) Throughput by Operation",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -894,7 +842,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 48
       },
       "targets": [
         {
@@ -904,7 +852,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"out\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\" fill(null)",
+          "query": "SELECT sum(\"in\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\"::tag fill(null)",
           "resultFormat": "time_series",
           "alias": "$tag_operation"
         }
@@ -957,7 +905,7 @@
     {
       "id": 12,
       "type": "timeseries",
-      "title": "$protocol Operation Rate by Node",
+      "title": "$protocol Outbound (Read) Throughput by Operation",
       "datasource": {
         "type": "influxdb",
         "uid": "DS_INFLUXDB"
@@ -966,7 +914,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 56
       },
       "targets": [
         {
@@ -976,7 +924,79 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"node\" fill(null)",
+          "query": "SELECT sum(\"out\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"operation\"::tag fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_operation"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Throughput"
+          },
+          "unit": "Bps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "$protocol Operation Rate by Node",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 64
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT sum(\"operation_rate\") FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"node\"::tag fill(null)",
           "resultFormat": "time_series",
           "alias": "Node $tag_node"
         }
@@ -1027,7 +1047,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "timeseries",
       "title": "$protocol Average Latency by Node",
       "datasource": {
@@ -1038,7 +1058,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 72
       },
       "targets": [
         {
@@ -1048,7 +1068,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\" =~ /^$cluster$/ AND \"node\" =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"node\" fill(null)",
+          "query": "SELECT mean(\"time_avg\") / 1000 FROM \"node.summary.protocol\" WHERE \"cluster\"::tag =~ /^$cluster$/ AND \"node\"::tag =~ /^$node$/ AND \"protocol\" = '$protocol' AND $timeFilter GROUP BY time($__interval), \"node\"::tag fill(null)",
           "resultFormat": "time_series",
           "alias": "Node $tag_node"
         }

@@ -7,309 +7,172 @@ per-operation breakdowns with full latency statistics (avg/min/max/stddev).
 This is distinct from the Protocol Detail dashboard which uses
 cluster.protostats.* (cluster-level aggregates without per-operation
 latency distribution).
-"""
-import json, os
 
-PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DS = {"type": "influxdb", "uid": "DS_INFLUXDB"}
+Generates both InfluxDB and Prometheus variants.
+"""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from dashlib import *
+
+README = """\
+## PowerScale - Protocol Summary Stats
+
+Per-node, per-operation protocol statistics with latency distribution \
+(avg/min/max/stddev) from OneFS summary statistics.
+
+Requires `protocol = true` in the `[summary_stats]` section of the \
+gostats collector configuration."""
+
+MEAS = "node.summary.protocol"  # InfluxDB measurement
+M    = "isilon_stat_node_summary_protocol"  # Prometheus metric prefix
 
 # Protocol list matches OneFS isi statistics protocol list --protocols
 PROTOCOLS = "nfs3,nfs4,smb1,smb2,nlm,ftp,http,siq,jobd,irp,lsass_in,lsass_out,papi,hdfs,s3,nfsrdma,nfs4rdma"
 
-# ── Helpers ──
 
-def influx_target(refId, query, alias=None, fmt="time_series"):
-    t = {"refId": refId, "datasource": DS, "rawQuery": True,
-         "query": query, "resultFormat": fmt}
-    if alias:
-        t["alias"] = alias
-    return t
+def generate(backend):
+    ds = DS_INFLUXDB if backend == "influxdb" else DS_PROMETHEUS
+    influx = (backend == "influxdb")
+    tags = ["powerscale", "gostats", "summary"] + (["prometheus"] if not influx else [])
 
-def timeseries_panel(pid, title, targets, y, unit="short", h=8, w=24, x=0,
-                     axis_label=None, axis_min=None, axis_max=None,
-                     span_nulls=True, fill_opacity=10, line_width=2,
-                     tooltip_sort="desc", overrides=None):
-    fc = {
-        "defaults": {
-            "custom": {
-                "drawStyle": "line", "lineInterpolation": "linear",
-                "lineWidth": line_width, "fillOpacity": fill_opacity,
-                "showPoints": "never", "pointSize": 5,
-                "spanNulls": span_nulls,
-                "stacking": {"mode": "none", "group": "A"},
-                "axisPlacement": "auto", "barAlignment": 0,
-                "gradientMode": "none",
-                "thresholdsStyle": {"mode": "off"},
-            },
-            "unit": unit,
-        },
-        "overrides": overrides or []
-    }
-    if axis_label:
-        fc["defaults"]["custom"]["axisLabel"] = axis_label
-    if axis_min is not None:
-        fc["defaults"]["min"] = axis_min
-    if axis_max is not None:
-        fc["defaults"]["max"] = axis_max
-    return {
-        "id": pid, "type": "timeseries", "title": title,
-        "datasource": DS, "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "targets": targets, "fieldConfig": fc,
-        "options": {
-            "legend": {
-                "displayMode": "table", "placement": "right",
-                "calcs": ["min", "max", "mean", "lastNotNull"],
-                "width": 500,
-            },
-            "tooltip": {"mode": "multi", "sort": tooltip_sort},
-        }
-    }
+    def T(refId, iq, pq, alias=None, legend=None):
+        if influx:
+            return influx_target(ds, refId, iq, alias=alias)
+        return prom_target(ds, refId, pq, legend=legend)
 
-def stat_panel(pid, title, target, y, x=0, w=6, h=4, unit="short",
-               decimals=None, color_mode="value", graph_mode="area",
-               calc="lastNotNull"):
-    th = {"mode": "absolute", "steps": [{"color": "green", "value": None}]}
-    fc = {"defaults": {"thresholds": th, "unit": unit}, "overrides": []}
-    if decimals is not None:
-        fc["defaults"]["decimals"] = decimals
-    return {
-        "id": pid, "type": "stat", "title": title,
-        "datasource": DS, "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "targets": [target], "fieldConfig": fc,
-        "options": {
-            "reduceOptions": {"calcs": [calc], "fields": "", "values": False},
-            "colorMode": color_mode, "orientation": "auto",
-            "graphMode": graph_mode, "textMode": "auto", "wideLayout": True,
-        }
-    }
+    W = ('"cluster"::tag =~ /^$cluster$/ AND "node"::tag =~ /^$node$/ '
+         'AND "protocol" = \'$protocol\'') if influx else ""
+    C = '{cluster=~"$cluster",node=~"$node",protocol=~"$protocol"}'
 
-# ══════════════════════════════════════════════════════════════════
-# Build dashboard
-# ══════════════════════════════════════════════════════════════════
+    panels = []; pid = 1; y = 0
 
-dashboard = {
-    "id": None, "uid": None,
-    "title": "PowerScale - Protocol Summary Stats",
-    "description": "Per-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev). Uses OneFS summary statistics.",
-    "tags": ["powerscale", "gostats", "summary"],
-    "schemaVersion": 39, "version": 1,
-    "editable": True, "graphTooltip": 1, "timezone": "browser",
-    "time": {"from": "now-1h", "to": "now"},
-    "timepicker": {"refresh_intervals": ["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"]},
-    "refresh": "30s", "fiscalYearStartMonth": 0, "liveNow": False,
-    "templating": {"list": [
-        {
-            "name": "cluster", "label": "Cluster", "type": "query",
-            "datasource": DS,
-            "query": 'SHOW TAG VALUES WITH KEY = "cluster"',
-            "definition": 'SHOW TAG VALUES WITH KEY = "cluster"',
-            "sort": 3, "multi": False, "includeAll": False,
-            "current": {}, "refresh": 1, "hide": 0
-        },
-        {
-            "name": "protocol", "label": "Protocol", "type": "custom",
-            "query": PROTOCOLS,
-            "current": {"selected": True, "text": "nfs3", "value": "nfs3"},
-            "options": [{"selected": p == "nfs3", "text": p, "value": p}
-                        for p in PROTOCOLS.split(",")],
-            "multi": False, "includeAll": False, "hide": 0
-        },
-        {
-            "name": "node", "label": "Node", "type": "query",
-            "datasource": DS,
-            "query": 'SHOW TAG VALUES FROM "node.summary.protocol" WITH KEY = "node" WHERE "cluster" =~ /^$cluster$/',
-            "definition": 'SHOW TAG VALUES FROM "node.summary.protocol" WITH KEY = "node" WHERE "cluster" =~ /^$cluster$/',
-            "sort": 3, "multi": True, "includeAll": True,
-            "allValue": "", "current": {}, "refresh": 1, "hide": 0
-        }
-    ]},
-    "annotations": {"list": [{
-        "builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"},
-        "enable": True, "hide": True, "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts", "type": "dashboard"
-    }]},
-    "panels": [], "links": []
-}
+    # ── README panel ──
+    panels.append(text_panel(pid, README, y, h=4)); pid += 1; y += 4
 
-pid = 1
-y = 0
+    # ── Overview stats ──
+    for i, (title, iq, pq, unit, dec) in enumerate([
+        ("$protocol Ops/s",
+         f'SELECT sum("operation_rate") FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_operation_rate{C})', "ops", 0),
+        ("$protocol Avg Latency",
+         f'SELECT mean("time_avg") / 1000 FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'avg({M}_time_avg{C}) / 1000', "ms", 2),
+        ("$protocol Inbound",
+         f'SELECT sum("in") FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_in{C})', "Bps", None),
+        ("$protocol Outbound",
+         f'SELECT sum("out") FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_out{C})', "Bps", None),
+    ]):
+        panels.append(stat_panel(ds, pid, title,
+                                 T("A", iq, pq),
+                                 y=y, x=i*6, w=6, h=4, unit=unit, decimals=dec))
+        pid += 1
+    y += 4
 
-# ══════════════════════════════════════════════════════════════════
-# Row 1: Overview stats (aggregated across selected nodes)
-# ══════════════════════════════════════════════════════════════════
+    def _iq(agg, field, scale="", group_tag=None):
+        gb = f', "{group_tag}"::tag' if group_tag else ""
+        return (f'SELECT {agg}("{field}"){scale} FROM "{MEAS}" '
+                f'WHERE {W} AND $timeFilter '
+                f'GROUP BY time($__interval){gb} fill(null)')
 
-overview = [
-    ("$protocol Ops/s", 'SELECT sum("operation_rate") FROM "node.summary.protocol" WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ AND "protocol" = \'$protocol\' AND $timeFilter GROUP BY time($__interval) fill(null)', "ops", 0),
-    ("$protocol Avg Latency", 'SELECT mean("time_avg") / 1000 FROM "node.summary.protocol" WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ AND "protocol" = \'$protocol\' AND $timeFilter GROUP BY time($__interval) fill(null)', "ms", 2),
-    ("$protocol Inbound", 'SELECT sum("in") FROM "node.summary.protocol" WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ AND "protocol" = \'$protocol\' AND $timeFilter GROUP BY time($__interval) fill(null)', "Bps", None),
-    ("$protocol Outbound", 'SELECT sum("out") FROM "node.summary.protocol" WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ AND "protocol" = \'$protocol\' AND $timeFilter GROUP BY time($__interval) fill(null)', "Bps", None),
-]
+    ts_panels = [
+        ("$protocol Operation Rate by Class",
+         [T("A", _iq("sum", "operation_rate", group_tag="class"),
+            f'sum by (class) ({M}_operation_rate{C})',
+            alias="$tag_class", legend="{{class}}")],
+         "ops", "Ops/s"),
+        ("$protocol Operation Rate by Operation",
+         [T("A", _iq("sum", "operation_rate", group_tag="operation"),
+            f'sum by (operation) ({M}_operation_rate{C})',
+            alias="$tag_operation", legend="{{operation}}")],
+         "ops", "Ops/s"),
+        ("$protocol Average Latency by Class",
+         [T("A", _iq("mean", "time_avg", " / 1000", group_tag="class"),
+            f'avg by (class) ({M}_time_avg{C}) / 1000',
+            alias="$tag_class", legend="{{class}}")],
+         "ms", "Latency"),
+        ("$protocol Average Latency by Operation",
+         [T("A", _iq("mean", "time_avg", " / 1000", group_tag="operation"),
+            f'avg by (operation) ({M}_time_avg{C}) / 1000',
+            alias="$tag_operation", legend="{{operation}}")],
+         "ms", "Latency"),
+        ("$protocol Latency Distribution (Avg / Max / Min / StdDev)",
+         [T("A", _iq("mean", "time_avg", " / 1000"),
+            f'avg({M}_time_avg{C}) / 1000',
+            alias="Average", legend="Average"),
+          T("B", _iq("mean", "time_max", " / 1000"),
+            f'avg({M}_time_max{C}) / 1000',
+            alias="Maximum", legend="Maximum"),
+          T("C", _iq("mean", "time_min", " / 1000"),
+            f'avg({M}_time_min{C}) / 1000',
+            alias="Minimum", legend="Minimum"),
+          T("D", _iq("mean", "time_standard_dev", " / 1000"),
+            f'avg({M}_time_standard_dev{C}) / 1000',
+            alias="Std Dev", legend="Std Dev")],
+         "ms", "Latency"),
+        ("$protocol Inbound (Write) Throughput by Operation",
+         [T("A", _iq("sum", "in", group_tag="operation"),
+            f'sum by (operation) ({M}_in{C})',
+            alias="$tag_operation", legend="{{operation}}")],
+         "Bps", "Throughput"),
+        ("$protocol Outbound (Read) Throughput by Operation",
+         [T("A", _iq("sum", "out", group_tag="operation"),
+            f'sum by (operation) ({M}_out{C})',
+            alias="$tag_operation", legend="{{operation}}")],
+         "Bps", "Throughput"),
+        ("$protocol Operation Rate by Node",
+         [T("A", _iq("sum", "operation_rate", group_tag="node"),
+            f'sum by (node) ({M}_operation_rate{C})',
+            alias="Node $tag_node", legend="Node {{node}}")],
+         "ops", "Ops/s"),
+        ("$protocol Average Latency by Node",
+         [T("A", _iq("mean", "time_avg", " / 1000", group_tag="node"),
+            f'avg by (node) ({M}_time_avg{C}) / 1000',
+            alias="Node $tag_node", legend="Node {{node}}")],
+         "ms", "Latency"),
+    ]
 
-for i, (title, query, unit, dec) in enumerate(overview):
-    p = stat_panel(pid, title, influx_target("A", query),
-                   y=y, x=i*6, w=6, h=4, unit=unit, decimals=dec)
-    dashboard["panels"].append(p)
-    pid += 1
-y += 4
+    for title, targets, unit, axis_label in ts_panels:
+        panels.append(timeseries_panel(ds, pid, title, targets,
+                                       y=y, unit=unit,
+                                       axis_label=axis_label, axis_min=0))
+        pid += 1; y += 8
 
-# ══════════════════════════════════════════════════════════════════
-# Row 2: Operation Rate by Class and by Operation
-# ══════════════════════════════════════════════════════════════════
+    if influx:
+        variables = [
+            var_query(ds, "cluster", "Cluster",
+                      'SHOW TAG VALUES WITH KEY = "cluster"'),
+            var_custom("protocol", "Protocol",
+                       PROTOCOLS.split(","), default="nfs3"),
+            var_query(ds, "node", "Node",
+                      f'SHOW TAG VALUES FROM "{MEAS}" WITH KEY = "node" '
+                      f'WHERE "cluster" =~ /^$cluster$/',
+                      multi=True, include_all=True),
+        ]
+    else:
+        variables = [
+            var_query(ds, "cluster", "Cluster",
+                      f'label_values({M}_operation_rate, cluster)'),
+            var_query(ds, "protocol", "Protocol",
+                      f'label_values({M}_operation_rate{{cluster=~"$cluster"}}, protocol)'),
+            var_query(ds, "node", "Node",
+                      f'label_values({M}_operation_rate{{cluster=~"$cluster"}}, node)',
+                      multi=True, include_all=True),
+        ]
 
-p = timeseries_panel(pid, "$protocol Operation Rate by Class", [
-    influx_target("A",
-        'SELECT sum("operation_rate") FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "class" fill(null)',
-        alias="$tag_class")
-], y=y, unit="ops", axis_label="Ops/s", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
+    dash = make_dashboard(
+        title="PowerScale - Protocol Summary Stats",
+        description="Per-node, per-operation protocol statistics with latency "
+                    "distribution (avg/min/max/stddev). Uses OneFS summary statistics.",
+        tags=tags,
+        variables=variables,
+        panels=panels,
+    )
+    write_dashboard(dash, outpath(backend, "protocol_summary.json"))
 
-p = timeseries_panel(pid, "$protocol Operation Rate by Operation", [
-    influx_target("A",
-        'SELECT sum("operation_rate") FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "operation" fill(null)',
-        alias="$tag_operation")
-], y=y, unit="ops", axis_label="Ops/s", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
 
-# ══════════════════════════════════════════════════════════════════
-# Row 3: Average Latency by Class and by Operation
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "$protocol Average Latency by Class", [
-    influx_target("A",
-        'SELECT mean("time_avg") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "class" fill(null)',
-        alias="$tag_class")
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-p = timeseries_panel(pid, "$protocol Average Latency by Operation", [
-    influx_target("A",
-        'SELECT mean("time_avg") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "operation" fill(null)',
-        alias="$tag_operation")
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Row 4: Latency Distribution (avg/max/min for selected protocol)
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "$protocol Latency Distribution (Avg / Max / Min)", [
-    influx_target("A",
-        'SELECT mean("time_avg") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval) fill(null)',
-        alias="Average"),
-    influx_target("B",
-        'SELECT mean("time_max") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval) fill(null)',
-        alias="Maximum"),
-    influx_target("C",
-        'SELECT mean("time_min") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval) fill(null)',
-        alias="Minimum"),
-    influx_target("D",
-        'SELECT mean("time_standard_dev") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval) fill(null)',
-        alias="Std Dev"),
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Row 5: Throughput by Operation
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "$protocol Inbound (Write) Throughput by Operation", [
-    influx_target("A",
-        'SELECT sum("in") FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "operation" fill(null)',
-        alias="$tag_operation")
-], y=y, unit="Bps", axis_label="Throughput", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-p = timeseries_panel(pid, "$protocol Outbound (Read) Throughput by Operation", [
-    influx_target("A",
-        'SELECT sum("out") FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "operation" fill(null)',
-        alias="$tag_operation")
-], y=y, unit="Bps", axis_label="Throughput", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Row 6: Per-Node Breakdown (for identifying hot nodes)
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "$protocol Operation Rate by Node", [
-    influx_target("A",
-        'SELECT sum("operation_rate") FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "node" fill(null)',
-        alias="Node $tag_node")
-], y=y, unit="ops", axis_label="Ops/s", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-p = timeseries_panel(pid, "$protocol Average Latency by Node", [
-    influx_target("A",
-        'SELECT mean("time_avg") / 1000 FROM "node.summary.protocol" '
-        'WHERE "cluster" =~ /^$cluster$/ AND "node" =~ /^$node$/ '
-        'AND "protocol" = \'$protocol\' AND $timeFilter '
-        'GROUP BY time($__interval), "node" fill(null)',
-        alias="Node $tag_node")
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Write output
-# ══════════════════════════════════════════════════════════════════
-
-outpath = os.path.join(PROJ_ROOT, "dashboards/influxdb/protocol_summary.json")
-with open(outpath, 'w') as f:
-    json.dump(dashboard, f, indent=2)
-    f.write('\n')
-
-print(f"Generated {len(dashboard['panels'])} panels")
-for p in dashboard["panels"]:
-    ptype = p["type"]
-    title = p.get("title", "")
-    gp = p["gridPos"]
-    print(f"  {ptype:12s} w={gp['w']:2d} x={gp['x']:2d} y={gp['y']:2d} | {title}")
+if __name__ == "__main__":
+    for b in ("influxdb", "prometheus"):
+        print(f"\n=== {b} ===")
+        generate(b)

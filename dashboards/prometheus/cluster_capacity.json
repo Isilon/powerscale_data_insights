@@ -2,7 +2,7 @@
   "id": null,
   "uid": null,
   "title": "PowerScale - Cluster Capacity",
-  "description": "Cluster capacity utilization overview for Dell PowerScale clusters",
+  "description": "Color coded table showing cluster capacity utilization. Good to see the clusters with the highest capacity utilization.",
   "tags": [
     "powerscale",
     "gostats",
@@ -49,10 +49,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ".*"
       }
     ]
   },
@@ -75,6 +75,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Cluster Capacity\n\nStorage capacity utilization across clusters. Color-coded thresholds: green (<85%), orange (85-90%), red (>90%).",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "table",
       "title": "Cluster Capacity Utilization",
       "datasource": {
@@ -85,7 +105,7 @@
         "h": 20,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -164,12 +184,6 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "sortBy": [
-          {
-            "displayName": "Capacity Utilization %",
-            "desc": true
-          }
-        ],
         "footer": {
           "show": false,
           "reducer": [
@@ -177,7 +191,13 @@
           ],
           "countRows": false,
           "fields": ""
-        }
+        },
+        "sortBy": [
+          {
+            "displayName": "Capacity Utilization %",
+            "desc": true
+          }
+        ]
       },
       "transformations": [
         {

@@ -2,7 +2,7 @@
   "id": null,
   "uid": null,
   "title": "PowerScale - Protocol Summary Stats",
-  "description": "Per-node, per-operation protocol statistics with latency distribution",
+  "description": "Per-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev). Uses OneFS summary statistics.",
   "tags": [
     "powerscale",
     "gostats",
@@ -45,30 +45,11 @@
           "type": "prometheus",
           "uid": "DS_PROMETHEUS"
         },
-        "query": "label_values(isilon_stat_cluster_health, cluster)",
-        "definition": "label_values(isilon_stat_cluster_health, cluster)",
+        "query": "label_values(isilon_stat_node_summary_protocol_operation_rate, cluster)",
+        "definition": "label_values(isilon_stat_node_summary_protocol_operation_rate, cluster)",
         "sort": 3,
         "multi": false,
         "includeAll": false,
-        "allValue": ".*",
-        "current": {},
-        "refresh": 1,
-        "hide": 0
-      },
-      {
-        "name": "node",
-        "label": "Node",
-        "type": "query",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "DS_PROMETHEUS"
-        },
-        "query": "label_values(isilon_stat_node_disk_busy_avg{cluster=~\"$cluster\"}, node)",
-        "definition": "label_values(isilon_stat_node_disk_busy_avg{cluster=~\"$cluster\"}, node)",
-        "sort": 3,
-        "multi": true,
-        "includeAll": true,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
         "hide": 0
@@ -83,12 +64,30 @@
         },
         "query": "label_values(isilon_stat_node_summary_protocol_operation_rate{cluster=~\"$cluster\"}, protocol)",
         "definition": "label_values(isilon_stat_node_summary_protocol_operation_rate{cluster=~\"$cluster\"}, protocol)",
-        "sort": 1,
+        "sort": 3,
         "multi": false,
         "includeAll": false,
         "current": {},
         "refresh": 1,
         "hide": 0
+      },
+      {
+        "name": "node",
+        "label": "Node",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "DS_PROMETHEUS"
+        },
+        "query": "label_values(isilon_stat_node_summary_protocol_operation_rate{cluster=~\"$cluster\"}, node)",
+        "definition": "label_values(isilon_stat_node_summary_protocol_operation_rate{cluster=~\"$cluster\"}, node)",
+        "sort": 3,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "refresh": 1,
+        "hide": 0,
+        "allValue": ".*"
       }
     ]
   },
@@ -111,6 +110,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Protocol Summary Stats\n\nPer-node, per-operation protocol statistics with latency distribution (avg/min/max/stddev) from OneFS summary statistics.\n\nRequires `protocol = true` in the `[summary_stats]` section of the gostats collector configuration.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "$protocol Ops/s",
       "datasource": {
@@ -121,7 +140,7 @@
         "h": 4,
         "w": 6,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -167,7 +186,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "$protocol Avg Latency",
       "datasource": {
@@ -178,7 +197,7 @@
         "h": 4,
         "w": 6,
         "x": 6,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -224,7 +243,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "$protocol Inbound",
       "datasource": {
@@ -235,7 +254,7 @@
         "h": 4,
         "w": 6,
         "x": 12,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -280,7 +299,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "$protocol Outbound",
       "datasource": {
@@ -291,7 +310,7 @@
         "h": 4,
         "w": 6,
         "x": 18,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -336,7 +355,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "timeseries",
       "title": "$protocol Operation Rate by Class",
       "datasource": {
@@ -347,7 +366,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
@@ -380,7 +399,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -406,7 +426,7 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "timeseries",
       "title": "$protocol Operation Rate by Operation",
       "datasource": {
@@ -417,7 +437,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 16
       },
       "targets": [
         {
@@ -450,7 +470,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -476,7 +497,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "timeseries",
       "title": "$protocol Average Latency by Class",
       "datasource": {
@@ -487,7 +508,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "targets": [
         {
@@ -520,7 +541,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0
@@ -546,7 +568,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "timeseries",
       "title": "$protocol Average Latency by Operation",
       "datasource": {
@@ -557,7 +579,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 32
       },
       "targets": [
         {
@@ -590,7 +612,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0
@@ -616,7 +639,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "timeseries",
       "title": "$protocol Latency Distribution (Avg / Max / Min / StdDev)",
       "datasource": {
@@ -627,7 +650,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 40
       },
       "targets": [
         {
@@ -690,7 +713,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0
@@ -716,9 +740,9 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "timeseries",
-      "title": "$protocol Inbound Throughput by Operation",
+      "title": "$protocol Inbound (Write) Throughput by Operation",
       "datasource": {
         "type": "prometheus",
         "uid": "DS_PROMETHEUS"
@@ -727,7 +751,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 48
       },
       "targets": [
         {
@@ -760,7 +784,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Throughput"
           },
           "unit": "Bps",
           "min": 0
@@ -786,9 +811,9 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": "timeseries",
-      "title": "$protocol Outbound Throughput by Operation",
+      "title": "$protocol Outbound (Read) Throughput by Operation",
       "datasource": {
         "type": "prometheus",
         "uid": "DS_PROMETHEUS"
@@ -797,7 +822,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 56
       },
       "targets": [
         {
@@ -830,7 +855,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Throughput"
           },
           "unit": "Bps",
           "min": 0
@@ -856,7 +882,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": "timeseries",
       "title": "$protocol Operation Rate by Node",
       "datasource": {
@@ -867,7 +893,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 64
       },
       "targets": [
         {
@@ -900,7 +926,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Ops/s"
           },
           "unit": "ops",
           "min": 0
@@ -926,7 +953,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "timeseries",
       "title": "$protocol Average Latency by Node",
       "datasource": {
@@ -937,7 +964,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 72
       },
       "targets": [
         {
@@ -970,7 +997,8 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            }
+            },
+            "axisLabel": "Latency"
           },
           "unit": "ms",
           "min": 0

@@ -49,7 +49,6 @@
         "sort": 3,
         "multi": false,
         "includeAll": false,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
         "hide": 0
@@ -74,53 +73,18 @@
   },
   "panels": [
     {
-      "id": 100,
-      "type": "row",
-      "title": "Welcome to the PowerScale Cluster Detail Dashboard",
-      "collapsed": true,
+      "id": 1,
+      "type": "text",
+      "title": "",
       "gridPos": {
-        "h": 1,
+        "h": 4,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "panels": [
-        {
-          "id": 101,
-          "type": "text",
-          "title": "Welcome to the PowerScale Cluster Detail Dashboard",
-          "gridPos": {
-            "h": 6,
-            "w": 24,
-            "x": 0,
-            "y": 1
-          },
-          "options": {
-            "mode": "markdown",
-            "content": "Use the cluster dropdown to select a cluster. All panels show data for the selected cluster.",
-            "code": {
-              "language": "plaintext",
-              "showLineNumbers": false,
-              "showMiniMap": false
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": 1,
-      "type": "text",
-      "title": "$cluster",
-      "transparent": true,
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
       "options": {
         "mode": "markdown",
-        "content": "### $cluster\n\n[WebUI](https://$cluster:8080/)",
+        "content": "## PowerScale - Cluster Detail\n\nDetailed performance dashboard for a single Dell PowerScale cluster. Select the cluster using the dropdown above.\n\nShows CPU breakdown, protocol operations, client connections, network traffic, file system events, cache hit ratios, and more.",
         "code": {
           "language": "plaintext",
           "showLineNumbers": false,
@@ -130,6 +94,27 @@
     },
     {
       "id": 2,
+      "type": "text",
+      "title": "$cluster",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "### $cluster\n\n[WebUI](https://$cluster:8080/)",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      },
+      "transparent": true
+    },
+    {
+      "id": 3,
       "type": "stat",
       "title": "Total Nodes",
       "datasource": {
@@ -140,7 +125,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -160,20 +145,27 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(50, 172, 45, 0.97)",
                 "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 1
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 2
               }
             ]
           },
-          "unit": "none",
-          "decimals": 0
+          "unit": "none"
         },
         "overrides": []
       },
       "options": {
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "mean"
           ],
           "fields": "",
           "values": false
@@ -186,7 +178,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Nodes Down",
       "datasource": {
@@ -197,7 +189,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -230,28 +222,27 @@
               }
             ]
           },
-          "unit": "none",
-          "decimals": 0
+          "unit": "none"
         },
         "overrides": []
       },
       "options": {
         "reduceOptions": {
           "calcs": [
-            "lastNotNull"
+            "mean"
           ],
           "fields": "",
           "values": false
         },
         "colorMode": "background",
         "orientation": "auto",
-        "graphMode": "none",
+        "graphMode": "area",
         "textMode": "auto",
         "wideLayout": true
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Alert Status",
       "datasource": {
@@ -262,7 +253,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -298,16 +289,52 @@
           "unit": "none",
           "mappings": [
             {
+              "type": "range",
+              "options": {
+                "from": 0.0,
+                "to": 0.0,
+                "result": {
+                  "text": "Healthy",
+                  "index": 0
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 0.0001,
+                "to": 1.999,
+                "result": {
+                  "text": "Attention",
+                  "index": 1
+                }
+              }
+            },
+            {
+              "type": "range",
+              "options": {
+                "from": 2.0,
+                "to": 5.0,
+                "result": {
+                  "text": "Down",
+                  "index": 2
+                }
+              }
+            },
+            {
               "type": "value",
               "options": {
                 "0": {
-                  "text": "Healthy"
+                  "text": "Healthy",
+                  "index": 0
                 },
                 "1": {
-                  "text": "Attention"
+                  "text": "Attention",
+                  "index": 1
                 },
                 "2": {
-                  "text": "Down"
+                  "text": "Down",
+                  "index": 2
                 }
               }
             }
@@ -331,7 +358,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "gauge",
       "title": "Cluster CPU",
       "datasource": {
@@ -342,7 +369,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -395,9 +422,9 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "gauge",
-      "title": "Cluster Capacity",
+      "title": "Cluster Capacity Utilization",
       "datasource": {
         "type": "prometheus",
         "uid": "DS_PROMETHEUS"
@@ -406,7 +433,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 1
+        "y": 4
       },
       "targets": [
         {
@@ -459,7 +486,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "stat",
       "title": "NFSv3 Throughput",
       "datasource": {
@@ -470,7 +497,7 @@
         "h": 4,
         "w": 4,
         "x": 0,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -490,8 +517,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(50, 172, 45, 0.97)",
                 "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
               }
             ]
           },
@@ -515,7 +550,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 9,
       "type": "stat",
       "title": "NFSv3 Op/s",
       "datasource": {
@@ -526,7 +561,7 @@
         "h": 4,
         "w": 4,
         "x": 4,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -546,13 +581,20 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(50, 172, 45, 0.97)",
                 "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
               }
             ]
           },
-          "unit": "ops",
-          "decimals": 0
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -572,7 +614,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "stat",
       "title": "NFSv3 Latency",
       "datasource": {
@@ -583,7 +625,7 @@
         "h": 4,
         "w": 4,
         "x": 8,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -616,8 +658,7 @@
               }
             ]
           },
-          "unit": "ms",
-          "decimals": 1
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -637,7 +678,7 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "stat",
       "title": "SMB2 Throughput",
       "datasource": {
@@ -648,7 +689,7 @@
         "h": 4,
         "w": 4,
         "x": 12,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -668,8 +709,16 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(50, 172, 45, 0.97)",
                 "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
               }
             ]
           },
@@ -693,7 +742,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 12,
       "type": "stat",
       "title": "SMB2 Op/s",
       "datasource": {
@@ -704,7 +753,7 @@
         "h": 4,
         "w": 4,
         "x": 16,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -724,13 +773,20 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "rgba(50, 172, 45, 0.97)",
                 "value": null
+              },
+              {
+                "color": "rgba(237, 129, 40, 0.89)",
+                "value": 10
+              },
+              {
+                "color": "rgba(245, 54, 54, 0.9)",
+                "value": 25
               }
             ]
           },
-          "unit": "ops",
-          "decimals": 0
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -750,7 +806,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 13,
       "type": "stat",
       "title": "SMB2 Latency",
       "datasource": {
@@ -761,7 +817,7 @@
         "h": 4,
         "w": 4,
         "x": 20,
-        "y": 5
+        "y": 8
       },
       "targets": [
         {
@@ -794,8 +850,7 @@
               }
             ]
           },
-          "unit": "ms",
-          "decimals": 1
+          "unit": "ms"
         },
         "overrides": []
       },
@@ -815,7 +870,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 14,
       "type": "timeseries",
       "title": "Cluster Capacity Utilization",
       "datasource": {
@@ -826,7 +881,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 12
       },
       "targets": [
         {
@@ -859,8 +914,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Cluster Capacity Utilization"
+            }
           },
           "unit": "percent",
           "min": 0
@@ -881,12 +935,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 14,
+      "id": 15,
       "type": "timeseries",
       "title": "Cluster CPU for $cluster",
       "datasource": {
@@ -897,11 +951,11 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 20
       },
       "targets": [
         {
-          "refId": "A",
+          "refId": "D",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -911,7 +965,7 @@
           "editorMode": "code"
         },
         {
-          "refId": "B",
+          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -921,7 +975,7 @@
           "editorMode": "code"
         },
         {
-          "refId": "C",
+          "refId": "B",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -931,7 +985,7 @@
           "editorMode": "code"
         },
         {
-          "refId": "D",
+          "refId": "C",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -944,7 +998,7 @@
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "drawStyle": "line",
+            "drawStyle": "bars",
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 40,
@@ -1028,12 +1082,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 15,
+      "id": 16,
       "type": "timeseries",
       "title": "Cluster Protocol Operations and CPU for $cluster",
       "datasource": {
@@ -1044,7 +1098,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 28
       },
       "targets": [
         {
@@ -1087,8 +1141,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Protocol Operations per Second"
+            }
           },
           "unit": "ops",
           "min": 0
@@ -1149,12 +1202,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 16,
+      "id": 17,
       "type": "timeseries",
       "title": "Active Client Connections by Protocol for $cluster",
       "datasource": {
@@ -1165,7 +1218,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 36
       },
       "targets": [
         {
@@ -1183,7 +1236,7 @@
         "defaults": {
           "custom": {
             "drawStyle": "line",
-            "lineInterpolation": "linear",
+            "lineInterpolation": "stepAfter",
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never",
@@ -1198,109 +1251,11 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Connections"
+            }
           },
           "unit": "short"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.lineInterpolation",
-                "value": "stepAfter"
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "min",
-            "max",
-            "mean",
-            "lastNotNull"
-          ],
-          "width": 500
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 17,
-      "type": "timeseries",
-      "title": "Open Files for $cluster",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "DS_PROMETHEUS"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 41
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "DS_PROMETHEUS"
-          },
-          "expr": "sum(isilon_stat_node_open_files{cluster=~\"$cluster\"})",
-          "legendFormat": "Open files",
-          "editorMode": "code"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "pointSize": 5,
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "gradientMode": "none",
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "axisLabel": "Open File Count"
-          },
-          "unit": "short",
-          "min": 0
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "A"
-            },
-            "properties": [
-              {
-                "id": "custom.drawStyle",
-                "value": "bars"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "legend": {
@@ -1323,6 +1278,76 @@
     {
       "id": 18,
       "type": "timeseries",
+      "title": "Open Files for $cluster",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "sum(isilon_stat_node_open_files{cluster=~\"$cluster\"})",
+          "legendFormat": "Open files",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
       "title": "Cluster Network Traffic for $cluster",
       "datasource": {
         "type": "prometheus",
@@ -1332,7 +1357,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 52
       },
       "targets": [
         {
@@ -1359,9 +1384,9 @@
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "drawStyle": "line",
+            "drawStyle": "bars",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 10,
             "showPoints": "never",
             "pointSize": 5,
@@ -1376,7 +1401,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Throughput"
+            "axisLabel": "Read (+) / Write (-)"
           },
           "unit": "Bps"
         },
@@ -1396,12 +1421,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 19,
+      "id": 20,
       "type": "timeseries",
       "title": "Cluster Network, File System and Disk Throughput for $cluster",
       "datasource": {
@@ -1412,11 +1437,11 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 60
       },
       "targets": [
         {
-          "refId": "A",
+          "refId": "D",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -1436,7 +1461,7 @@
           "editorMode": "code"
         },
         {
-          "refId": "C",
+          "refId": "E",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -1446,7 +1471,7 @@
           "editorMode": "code"
         },
         {
-          "refId": "D",
+          "refId": "C",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -1456,7 +1481,7 @@
           "editorMode": "code"
         },
         {
-          "refId": "E",
+          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -1479,9 +1504,9 @@
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "drawStyle": "line",
+            "drawStyle": "bars",
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "fillOpacity": 10,
             "showPoints": "never",
             "pointSize": 5,
@@ -1496,7 +1521,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Throughput"
+            "axisLabel": "Read (+) / Write (-)"
           },
           "unit": "Bps"
         },
@@ -1516,12 +1541,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 20,
+      "id": 21,
       "type": "timeseries",
       "title": "Cluster Network Errors for $cluster",
       "datasource": {
@@ -1532,7 +1557,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 68
       },
       "targets": [
         {
@@ -1559,7 +1584,7 @@
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "drawStyle": "line",
+            "drawStyle": "bars",
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 10,
@@ -1575,8 +1600,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Errors per Second"
+            }
           },
           "unit": "short",
           "min": 0
@@ -1620,20 +1644,18 @@
           "placement": "right",
           "calcs": [
             "min",
-            "max",
-            "mean",
-            "lastNotNull"
+            "max"
           ],
           "width": 500
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 21,
+      "id": 22,
       "type": "timeseries",
       "title": "Job Engine Activity for $cluster",
       "datasource": {
@@ -1644,11 +1666,11 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 73
+        "y": 76
       },
       "targets": [
         {
-          "refId": "A",
+          "refId": "D",
           "datasource": {
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
@@ -1661,7 +1683,7 @@
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "drawStyle": "line",
+            "drawStyle": "bars",
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "fillOpacity": 10,
@@ -1677,8 +1699,7 @@
             "gradientMode": "none",
             "thresholdsStyle": {
               "mode": "off"
-            },
-            "axisLabel": "Job Engine Operations per Second"
+            }
           },
           "unit": "ops",
           "min": 0
@@ -1704,7 +1725,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 23,
       "type": "timeseries",
       "title": "OneFS File System Events",
       "datasource": {
@@ -1715,7 +1736,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 81
+        "y": 84
       },
       "targets": [
         {
@@ -1768,12 +1789,12 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     },
     {
-      "id": 23,
+      "id": 24,
       "type": "timeseries",
       "title": "Cache Stats for $cluster",
       "datasource": {
@@ -1784,7 +1805,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 92
       },
       "targets": [
         {
@@ -1935,7 +1956,7 @@
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "desc"
+          "sort": "none"
         }
       }
     }

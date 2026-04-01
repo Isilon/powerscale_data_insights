@@ -44,12 +44,11 @@
           "type": "prometheus",
           "uid": "DS_PROMETHEUS"
         },
-        "query": "label_values(isilon_stat_cluster_health, cluster)",
-        "definition": "label_values(isilon_stat_cluster_health, cluster)",
+        "query": "label_values(isilon_stat_node_disk_busy_avg, cluster)",
+        "definition": "label_values(isilon_stat_node_disk_busy_avg, cluster)",
         "sort": 3,
         "multi": false,
         "includeAll": false,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
         "hide": 0
@@ -67,10 +66,10 @@
         "sort": 3,
         "multi": true,
         "includeAll": true,
-        "allValue": ".*",
         "current": {},
         "refresh": 1,
-        "hide": 0
+        "hide": 0,
+        "allValue": ".*"
       }
     ]
   },
@@ -93,6 +92,26 @@
   "panels": [
     {
       "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Drive Statistics\n\nPer-node disk performance using `node.disk.*` stats (always collected). Shows disk access latency, I/O scheduler latency and queue depth, disk utilization, throughput, IOPS, I/O size, and slow accesses per node.",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
       "type": "stat",
       "title": "Total Disk IOPS",
       "datasource": {
@@ -103,7 +122,7 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -149,7 +168,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "stat",
       "title": "Disk Read IOPS",
       "datasource": {
@@ -160,7 +179,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -206,7 +225,7 @@
       }
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "stat",
       "title": "Disk Write IOPS",
       "datasource": {
@@ -217,7 +236,7 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 0
+        "y": 4
       },
       "targets": [
         {
@@ -263,7 +282,7 @@
       }
     },
     {
-      "id": 4,
+      "id": 5,
       "type": "stat",
       "title": "Disk Read Throughput",
       "datasource": {
@@ -274,7 +293,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
@@ -320,7 +339,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "stat",
       "title": "Disk Write Throughput",
       "datasource": {
@@ -331,7 +350,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 8
       },
       "targets": [
         {
@@ -377,7 +396,363 @@
       }
     },
     {
-      "id": 6,
+      "id": 7,
+      "type": "table",
+      "title": "Node Disk Health Summary",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "max by (node) (isilon_stat_node_disk_access_latency_avg{cluster=~\"$cluster\",node=~\"$node\"}) * 1000",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "max by (node) (isilon_stat_node_disk_iosched_latency_avg{cluster=~\"$cluster\",node=~\"$node\"}) * 1000",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "max by (node) (isilon_stat_node_disk_iosched_queue_avg{cluster=~\"$cluster\",node=~\"$node\"})",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "max by (node) (isilon_stat_node_disk_busy_avg{cluster=~\"$cluster\",node=~\"$node\"}) / 10",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "max by (node) (isilon_stat_node_disk_access_slow_avg{cluster=~\"$cluster\",node=~\"$node\"})",
+          "legendFormat": "",
+          "editorMode": "code",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Access Latency (ms)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IOSched Latency (ms)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Queue Depth"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Busy %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Slow Accesses/s"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "node"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Node"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Access Latency (ms)",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "Access Latency (ms)",
+              "Value #B": "IOSched Latency (ms)",
+              "Value #C": "Queue Depth",
+              "Value #D": "Busy %",
+              "Value #E": "Slow Accesses/s"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
       "type": "timeseries",
       "title": "Disk Access Latency by Node",
       "datasource": {
@@ -388,7 +763,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 22
       },
       "targets": [
         {
@@ -448,7 +823,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 9,
       "type": "timeseries",
       "title": "I/O Scheduler Latency by Node",
       "datasource": {
@@ -459,7 +834,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 30
       },
       "targets": [
         {
@@ -519,7 +894,7 @@
       }
     },
     {
-      "id": 8,
+      "id": 10,
       "type": "timeseries",
       "title": "I/O Scheduler Queue Depth by Node",
       "datasource": {
@@ -530,7 +905,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 38
       },
       "targets": [
         {
@@ -590,7 +965,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 11,
       "type": "timeseries",
       "title": "Disk Busy % by Node",
       "datasource": {
@@ -601,7 +976,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 46
       },
       "targets": [
         {
@@ -638,149 +1013,8 @@
             "axisLabel": "Busy %"
           },
           "unit": "percent",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "min",
-            "max",
-            "mean",
-            "lastNotNull"
-          ],
-          "width": 500
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 10,
-      "type": "timeseries",
-      "title": "Disk Read Throughput by Node",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "DS_PROMETHEUS"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 40
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "DS_PROMETHEUS"
-          },
-          "expr": "isilon_stat_node_disk_bytes_out_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
-          "legendFormat": "Node {{node}}",
-          "editorMode": "code"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "pointSize": 5,
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "gradientMode": "none",
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "axisLabel": "Throughput"
-          },
-          "unit": "Bps",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "min",
-            "max",
-            "mean",
-            "lastNotNull"
-          ],
-          "width": 500
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 11,
-      "type": "timeseries",
-      "title": "Disk Write Throughput by Node",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "DS_PROMETHEUS"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 48
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "DS_PROMETHEUS"
-          },
-          "expr": "isilon_stat_node_disk_bytes_in_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
-          "legendFormat": "Node {{node}}",
-          "editorMode": "code"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "pointSize": 5,
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "gradientMode": "none",
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "axisLabel": "Throughput"
-          },
-          "unit": "Bps",
-          "min": 0
+          "min": 0,
+          "max": 100
         },
         "overrides": []
       },
@@ -805,7 +1039,7 @@
     {
       "id": 12,
       "type": "timeseries",
-      "title": "Disk Read IOPS by Node",
+      "title": "Disk Throughput by Node",
       "datasource": {
         "type": "prometheus",
         "uid": "DS_PROMETHEUS"
@@ -814,7 +1048,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 54
       },
       "targets": [
         {
@@ -823,8 +1057,18 @@
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
           },
-          "expr": "isilon_stat_node_disk_xfers_out_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
-          "legendFormat": "Node {{node}}",
+          "expr": "isilon_stat_node_disk_bytes_out_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
+          "legendFormat": "Node {{node}} Read",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "-isilon_stat_node_disk_bytes_in_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
+          "legendFormat": "Node {{node}} Write",
           "editorMode": "code"
         }
       ],
@@ -848,10 +1092,9 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "IOPS"
+            "axisLabel": "Read (+) / Write (-)"
           },
-          "unit": "ops",
-          "min": 0
+          "unit": "Bps"
         },
         "overrides": []
       },
@@ -876,7 +1119,7 @@
     {
       "id": 13,
       "type": "timeseries",
-      "title": "Disk Write IOPS by Node",
+      "title": "Disk IOPS by Node",
       "datasource": {
         "type": "prometheus",
         "uid": "DS_PROMETHEUS"
@@ -885,7 +1128,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 64
+        "y": 62
       },
       "targets": [
         {
@@ -894,8 +1137,18 @@
             "type": "prometheus",
             "uid": "DS_PROMETHEUS"
           },
-          "expr": "isilon_stat_node_disk_xfers_in_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
-          "legendFormat": "Node {{node}}",
+          "expr": "isilon_stat_node_disk_xfers_out_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
+          "legendFormat": "Node {{node}} Read",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "-isilon_stat_node_disk_xfers_in_rate_avg{cluster=~\"$cluster\",node=~\"$node\"}",
+          "legendFormat": "Node {{node}} Write",
           "editorMode": "code"
         }
       ],
@@ -919,10 +1172,9 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "IOPS"
+            "axisLabel": "Read (+) / Write (-)"
           },
-          "unit": "ops",
-          "min": 0
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -947,7 +1199,7 @@
     {
       "id": 14,
       "type": "timeseries",
-      "title": "Average I/O Size by Node (Read)",
+      "title": "Average I/O Size by Node",
       "datasource": {
         "type": "prometheus",
         "uid": "DS_PROMETHEUS"
@@ -956,7 +1208,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 72
+        "y": 70
       },
       "targets": [
         {
@@ -966,7 +1218,17 @@
             "uid": "DS_PROMETHEUS"
           },
           "expr": "isilon_stat_node_disk_xfer_size_out_avg{cluster=~\"$cluster\",node=~\"$node\"}",
-          "legendFormat": "Node {{node}}",
+          "legendFormat": "Node {{node}} Read",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_stat_node_disk_xfer_size_in_avg{cluster=~\"$cluster\",node=~\"$node\"}",
+          "legendFormat": "Node {{node}} Write",
           "editorMode": "code"
         }
       ],
@@ -1018,77 +1280,6 @@
     {
       "id": 15,
       "type": "timeseries",
-      "title": "Average I/O Size by Node (Write)",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "DS_PROMETHEUS"
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 80
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "DS_PROMETHEUS"
-          },
-          "expr": "isilon_stat_node_disk_xfer_size_in_avg{cluster=~\"$cluster\",node=~\"$node\"}",
-          "legendFormat": "Node {{node}}",
-          "editorMode": "code"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "showPoints": "never",
-            "pointSize": 5,
-            "spanNulls": true,
-            "stacking": {
-              "mode": "none",
-              "group": "A"
-            },
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "gradientMode": "none",
-            "thresholdsStyle": {
-              "mode": "off"
-            },
-            "axisLabel": "I/O Size"
-          },
-          "unit": "bytes",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": {
-          "displayMode": "table",
-          "placement": "right",
-          "calcs": [
-            "min",
-            "max",
-            "mean",
-            "lastNotNull"
-          ],
-          "width": 500
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      }
-    },
-    {
-      "id": 16,
-      "type": "timeseries",
       "title": "Slow Disk Accesses by Node",
       "datasource": {
         "type": "prometheus",
@@ -1098,7 +1289,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 78
       },
       "targets": [
         {
@@ -1132,7 +1323,7 @@
             "thresholdsStyle": {
               "mode": "off"
             },
-            "axisLabel": "Slow/s"
+            "axisLabel": "Slow Accesses/s"
           },
           "unit": "ops",
           "min": 0

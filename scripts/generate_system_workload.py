@@ -3,325 +3,180 @@
 
 Dataset 0 ("System") is a predefined PP dataset present on all OneFS 9.x+
 clusters. It breaks down resource consumption by system_name (OneFS daemon/
-process) and node. Useful for finding runaway system processes.
+process) and node.
 
-Units (from isi statistics workload list --nohumanize):
-  cpu: microseconds (520731 raw = 520.7ms humanized)
-  latency_read/write/other: microseconds
-  ops, reads, writes: count per interval
-  bytes_in/out: bytes per second
-  l2, l3: cache hits per second
+Generates both InfluxDB and Prometheus variants.
 """
-import json, os
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from dashlib import *
 
-PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DS = {"type": "influxdb", "uid": "DS_INFLUXDB"}
+README = """\
+## PowerScale - System Workload (PP Dataset 0)
 
-# ── Helpers ──
+OneFS system process resource consumption from Partitioned Performance
+Dataset 0. This dataset is predefined and always available on OneFS 9.x+ \
+clusters — no PP dataset configuration needed.
 
-def influx_target(refId, query, alias=None, fmt="time_series"):
-    t = {"refId": refId, "datasource": DS, "rawQuery": True,
-         "query": query, "resultFormat": fmt}
-    if alias:
-        t["alias"] = alias
-    return t
+Shows which daemons and system processes consume CPU, perform I/O, and \
+generate latency. Useful for identifying runaway system processes."""
 
-def timeseries_panel(pid, title, targets, y, unit="short", h=8, w=24, x=0,
-                     axis_label=None, axis_min=None, axis_max=None,
-                     span_nulls=True, fill_opacity=10, line_width=2,
-                     tooltip_sort="desc", overrides=None):
-    fc = {
-        "defaults": {
-            "custom": {
-                "drawStyle": "line", "lineInterpolation": "linear",
-                "lineWidth": line_width, "fillOpacity": fill_opacity,
-                "showPoints": "never", "pointSize": 5,
-                "spanNulls": span_nulls,
-                "stacking": {"mode": "none", "group": "A"},
-                "axisPlacement": "auto", "barAlignment": 0,
-                "gradientMode": "none",
-                "thresholdsStyle": {"mode": "off"},
-            },
-            "unit": unit,
-        },
-        "overrides": overrides or []
-    }
-    if axis_label:
-        fc["defaults"]["custom"]["axisLabel"] = axis_label
-    if axis_min is not None:
-        fc["defaults"]["min"] = axis_min
-    if axis_max is not None:
-        fc["defaults"]["max"] = axis_max
-    return {
-        "id": pid, "type": "timeseries", "title": title,
-        "datasource": DS, "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "targets": targets, "fieldConfig": fc,
-        "options": {
-            "legend": {
-                "displayMode": "table", "placement": "right",
-                "calcs": ["min", "max", "mean", "lastNotNull"],
-                "width": 500,
-            },
-            "tooltip": {"mode": "multi", "sort": tooltip_sort},
-        }
-    }
+MEAS = "cluster.performance.dataset.0"  # InfluxDB measurement
+M    = "isilon_ppstat_job_type_system_name"  # Prometheus metric prefix
 
-def stat_panel(pid, title, target, y, x=0, w=6, h=4, unit="short",
-               decimals=None, color_mode="value", graph_mode="area",
-               calc="lastNotNull"):
-    th = {"mode": "absolute", "steps": [{"color": "green", "value": None}]}
-    fc = {"defaults": {"thresholds": th, "unit": unit}, "overrides": []}
-    if decimals is not None:
-        fc["defaults"]["decimals"] = decimals
-    return {
-        "id": pid, "type": "stat", "title": title,
-        "datasource": DS, "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "targets": [target], "fieldConfig": fc,
-        "options": {
-            "reduceOptions": {"calcs": [calc], "fields": "", "values": False},
-            "colorMode": color_mode, "orientation": "auto",
-            "graphMode": graph_mode, "textMode": "auto", "wideLayout": True,
-        }
-    }
-
-# ══════════════════════════════════════════════════════════════════
-# Build dashboard
-# ══════════════════════════════════════════════════════════════════
-
-# Normal data filter: exclude overflow workload_type buckets
-# Uses same pattern as dashgen
+# Normal data filter (exclude overflow workload_type buckets)
 NORMAL = '("workload_type"::tag !~ /./ OR "workload_type"::tag = \'Pinned\')'
 
-dashboard = {
-    "id": None, "uid": None,
-    "title": "PowerScale - System Workload (PP Dataset 0)",
-    "description": "OneFS system process resource consumption from Partitioned Performance Dataset 0 (System). Shows CPU, I/O, and latency per system daemon/process.",
-    "tags": ["powerscale", "goppstats"],
-    "schemaVersion": 39, "version": 1,
-    "editable": True, "graphTooltip": 1, "timezone": "browser",
-    "time": {"from": "now-1h", "to": "now"},
-    "timepicker": {"refresh_intervals": ["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"]},
-    "refresh": "30s", "fiscalYearStartMonth": 0, "liveNow": False,
-    "templating": {"list": [
-        {
-            "name": "cluster", "label": "Cluster", "type": "query",
-            "datasource": DS,
-            "query": 'SHOW TAG VALUES FROM "cluster.performance.dataset.0" WITH KEY = "cluster"',
-            "definition": 'SHOW TAG VALUES FROM "cluster.performance.dataset.0" WITH KEY = "cluster"',
-            "sort": 3, "multi": False, "includeAll": False,
-            "current": {}, "refresh": 1, "hide": 0
-        },
-        {
-            "name": "node", "label": "Node", "type": "query",
-            "datasource": DS,
-            "query": 'SHOW TAG VALUES FROM "cluster.performance.dataset.0" WITH KEY = "node" WHERE "cluster" =~ /^$cluster$/',
-            "definition": 'SHOW TAG VALUES FROM "cluster.performance.dataset.0" WITH KEY = "node" WHERE "cluster" =~ /^$cluster$/',
-            "sort": 3, "multi": True, "includeAll": True,
-            "allValue": "", "current": {}, "refresh": 1, "hide": 0
-        }
-    ]},
-    "annotations": {"list": [{
-        "builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"},
-        "enable": True, "hide": True, "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts", "type": "dashboard"
-    }]},
-    "panels": [], "links": []
-}
 
-pid = 1
-y = 0
+def generate(backend):
+    ds = DS_INFLUXDB if backend == "influxdb" else DS_PROMETHEUS
+    influx = (backend == "influxdb")
+    tags = ["powerscale", "goppstats"] + (["prometheus"] if not influx else [])
 
-WHERE = (f'"cluster"::tag =~ /^$cluster$/ AND "node"::tag =~ /^$node$/ '
-         f'AND {NORMAL}')
+    # Shorthand: build target for the active backend
+    def T(refId, iq, pq, alias=None, legend=None, **kw):
+        if influx:
+            return influx_target(ds, refId, iq, alias=alias, **kw)
+        return prom_target(ds, refId, pq, legend=legend)
 
-# ══════════════════════════════════════════════════════════════════
-# Row 1: Overview stats
-# ══════════════════════════════════════════════════════════════════
+    # WHERE clause fragments
+    W = (f'"cluster"::tag =~ /^$cluster$/ AND "node"::tag =~ /^$node$/ '
+         f'AND {NORMAL}') if influx else ""
+    C = '{cluster=~"$cluster",node=~"$node"}'  # Prometheus label matcher
 
-overview = [
-    ("Total CPU",
-     f'SELECT sum("cpu") / 1000 FROM "cluster.performance.dataset.0" WHERE {WHERE} AND $timeFilter GROUP BY time($__interval) fill(null)',
-     "ms", 0),
-    ("Total Ops",
-     f'SELECT sum("ops") FROM "cluster.performance.dataset.0" WHERE {WHERE} AND $timeFilter GROUP BY time($__interval) fill(null)',
-     "ops", 0),
-    ("Total Bytes In",
-     f'SELECT sum("bytes_in") FROM "cluster.performance.dataset.0" WHERE {WHERE} AND $timeFilter GROUP BY time($__interval) fill(null)',
-     "Bps", None),
-    ("Total Bytes Out",
-     f'SELECT sum("bytes_out") FROM "cluster.performance.dataset.0" WHERE {WHERE} AND $timeFilter GROUP BY time($__interval) fill(null)',
-     "Bps", None),
-]
+    panels = []; pid = 1; y = 0
 
-for i, (title, query, unit, dec) in enumerate(overview):
-    p = stat_panel(pid, title, influx_target("A", query),
-                   y=y, x=i*6, w=6, h=4, unit=unit, decimals=dec)
-    dashboard["panels"].append(p)
-    pid += 1
-y += 4
+    # ── README panel ──
+    panels.append(text_panel(pid, README, y, h=4)); pid += 1; y += 4
 
-# ══════════════════════════════════════════════════════════════════
-# Row 2: CPU by System Process (the headline panel)
-# ══════════════════════════════════════════════════════════════════
+    # ── Overview stats ──
+    for i, (title, iq, pq, unit, dec) in enumerate([
+        ("Total CPU",
+         f'SELECT sum("cpu") / 1000 FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_cpu{C}) / 1000', "ms", 0),
+        ("Total Ops",
+         f'SELECT sum("ops") FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_ops{C})', "ops", 0),
+        ("Total Bytes In",
+         f'SELECT sum("bytes_in") FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_bytes_in{C})', "Bps", None),
+        ("Total Bytes Out",
+         f'SELECT sum("bytes_out") FROM "{MEAS}" WHERE {W} AND $timeFilter GROUP BY time($__interval) fill(null)' if influx else "",
+         f'sum({M}_bytes_out{C})', "Bps", None),
+    ]):
+        panels.append(stat_panel(ds, pid, title,
+                                 T("A", iq, pq),
+                                 y=y, x=i*6, w=6, h=4, unit=unit, decimals=dec))
+        pid += 1
+    y += 4
 
-p = timeseries_panel(pid, "CPU by System Process", [
-    influx_target("A",
-        f'SELECT sum("cpu") / 1000 FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ms", axis_label="CPU (ms)", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
+    # ── Timeseries panels (one metric per panel, grouped by system_name) ──
+    def _iq_by_sysname(agg, field, scale=""):
+        return (f'SELECT {agg}("{field}"){scale} FROM "{MEAS}" '
+                f'WHERE {W} AND $timeFilter '
+                f'GROUP BY time($__interval), "system_name"::tag fill(null)')
 
-# ══════════════════════════════════════════════════════════════════
-# Row 3: Operations by System Process
-# ══════════════════════════════════════════════════════════════════
+    ts_panels = [
+        ("CPU by System Process",
+         [T("A", _iq_by_sysname("sum", "cpu", " / 1000"),
+                 f'sum by (system_name) ({M}_cpu{C}) / 1000',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ms"),
+        ("Operations by System Process",
+         [T("A", _iq_by_sysname("sum", "ops"),
+                 f'sum by (system_name) ({M}_ops{C})',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ops"),
+        ("Reads and Writes by System Process",
+         [T("A", _iq_by_sysname("sum", "reads"),
+                 f'sum by (system_name) ({M}_reads{C})',
+                 alias="$tag_system_name reads", legend="{{system_name}} reads"),
+          T("B", _iq_by_sysname("sum", "writes"),
+                 f'sum by (system_name) ({M}_writes{C})',
+                 alias="$tag_system_name writes", legend="{{system_name}} writes")],
+         "short"),
+        ("Bytes In (Write) by System Process",
+         [T("A", _iq_by_sysname("sum", "bytes_in"),
+                 f'sum by (system_name) ({M}_bytes_in{C})',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "Bps"),
+        ("Bytes Out (Read) by System Process",
+         [T("A", _iq_by_sysname("sum", "bytes_out"),
+                 f'sum by (system_name) ({M}_bytes_out{C})',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "Bps"),
+        ("Read Latency by System Process",
+         [T("A", _iq_by_sysname("mean", "latency_read", " / 1000"),
+                 f'avg by (system_name) ({M}_latency_read{C}) / 1000',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ms"),
+        ("Write Latency by System Process",
+         [T("A", _iq_by_sysname("mean", "latency_write", " / 1000"),
+                 f'avg by (system_name) ({M}_latency_write{C}) / 1000',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ms"),
+        ("Other Latency by System Process",
+         [T("A", _iq_by_sysname("mean", "latency_other", " / 1000"),
+                 f'avg by (system_name) ({M}_latency_other{C}) / 1000',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ms"),
+        ("L2 Cache Hits by System Process",
+         [T("A", _iq_by_sysname("sum", "l2"),
+                 f'sum by (system_name) ({M}_l2{C})',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ops"),
+        ("L3 Cache Hits by System Process",
+         [T("A", _iq_by_sysname("sum", "l3"),
+                 f'sum by (system_name) ({M}_l3{C})',
+                 alias="$tag_system_name", legend="{{system_name}}")],
+         "ops"),
+        ("Total CPU by Node",
+         [T("A",
+            (f'SELECT sum("cpu") / 1000 FROM "{MEAS}" '
+             f'WHERE {W} AND $timeFilter '
+             f'GROUP BY time($__interval), "node"::tag fill(null)'),
+            f'sum by (node) ({M}_cpu{C}) / 1000',
+            alias="Node $tag_node", legend="Node {{node}}")],
+         "ms"),
+    ]
 
-p = timeseries_panel(pid, "Operations by System Process", [
-    influx_target("A",
-        f'SELECT sum("ops") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ops", axis_label="Ops", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
+    for title, targets, unit in ts_panels:
+        panels.append(timeseries_panel(ds, pid, title, targets,
+                                       y=y, unit=unit, axis_min=0))
+        pid += 1; y += 8
 
-p = timeseries_panel(pid, "Reads and Writes by System Process", [
-    influx_target("A",
-        f'SELECT sum("reads") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name reads"),
-    influx_target("B",
-        f'SELECT sum("writes") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name writes"),
-], y=y, unit="short", axis_label="Count", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
+    # ── Template variables ──
+    if influx:
+        variables = [
+            var_query(ds, "cluster", "Cluster",
+                      f'SHOW TAG VALUES FROM "{MEAS}" WITH KEY = "cluster"'),
+            var_query(ds, "node", "Node",
+                      f'SHOW TAG VALUES FROM "{MEAS}" WITH KEY = "node" '
+                      f'WHERE "cluster" =~ /^$cluster$/',
+                      multi=True, include_all=True),
+        ]
+    else:
+        variables = [
+            var_query(ds, "cluster", "Cluster",
+                      f'label_values({M}_cpu, cluster)'),
+            var_query(ds, "node", "Node",
+                      f'label_values({M}_cpu{{cluster=~"$cluster"}}, node)',
+                      multi=True, include_all=True),
+        ]
 
-# ══════════════════════════════════════════════════════════════════
-# Row 4: Throughput by System Process
-# ══════════════════════════════════════════════════════════════════
+    dash = make_dashboard(
+        title="PowerScale - System Workload (PP Dataset 0)",
+        description="OneFS system process resource consumption from Partitioned "
+                    "Performance Dataset 0 (System). Shows CPU, I/O, and latency "
+                    "per system daemon/process.",
+        tags=tags,
+        variables=variables,
+        panels=panels,
+    )
+    write_dashboard(dash, outpath(backend, "system_workload.json"))
 
-p = timeseries_panel(pid, "Bytes In (Write) by System Process", [
-    influx_target("A",
-        f'SELECT sum("bytes_in") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="Bps", axis_label="Throughput", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
 
-p = timeseries_panel(pid, "Bytes Out (Read) by System Process", [
-    influx_target("A",
-        f'SELECT sum("bytes_out") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="Bps", axis_label="Throughput", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Row 5: Latency by System Process
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "Read Latency by System Process", [
-    influx_target("A",
-        f'SELECT mean("latency_read") / 1000 FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-p = timeseries_panel(pid, "Write Latency by System Process", [
-    influx_target("A",
-        f'SELECT mean("latency_write") / 1000 FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-p = timeseries_panel(pid, "Other Latency by System Process", [
-    influx_target("A",
-        f'SELECT mean("latency_other") / 1000 FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ms", axis_label="Latency", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Row 6: Cache Hits by System Process
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "L2 Cache Hits by System Process", [
-    influx_target("A",
-        f'SELECT sum("l2") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ops", axis_label="L2 Hits/s", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-p = timeseries_panel(pid, "L3 Cache Hits by System Process", [
-    influx_target("A",
-        f'SELECT sum("l3") FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "system_name"::tag fill(null)',
-        alias="$tag_system_name")
-], y=y, unit="ops", axis_label="L3 Hits/s", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Row 7: Per-Node CPU Breakdown
-# ══════════════════════════════════════════════════════════════════
-
-p = timeseries_panel(pid, "Total CPU by Node", [
-    influx_target("A",
-        f'SELECT sum("cpu") / 1000 FROM "cluster.performance.dataset.0" '
-        f'WHERE {WHERE} AND $timeFilter '
-        f'GROUP BY time($__interval), "node"::tag fill(null)',
-        alias="Node $tag_node")
-], y=y, unit="ms", axis_label="CPU (ms)", axis_min=0)
-dashboard["panels"].append(p)
-pid += 1
-y += 8
-
-# ══════════════════════════════════════════════════════════════════
-# Write output
-# ══════════════════════════════════════════════════════════════════
-
-outpath = os.path.join(PROJ_ROOT, "dashboards/influxdb/system_workload.json")
-with open(outpath, 'w') as f:
-    json.dump(dashboard, f, indent=2)
-    f.write('\n')
-
-print(f"Generated {len(dashboard['panels'])} panels")
-for p in dashboard["panels"]:
-    ptype = p["type"]
-    title = p.get("title", "")
-    gp = p["gridPos"]
-    print(f"  {ptype:12s} w={gp['w']:2d} x={gp['x']:2d} y={gp['y']:2d} | {title}")
+if __name__ == "__main__":
+    for b in ("influxdb", "prometheus"):
+        print(f"\n=== {b} ===")
+        generate(b)
