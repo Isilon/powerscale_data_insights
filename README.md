@@ -35,16 +35,18 @@ modernized Grafana dashboards.
      └───────────┬────────────────────┘
                  │
                  ▼
-          ┌─────────────┐
-          │  InfluxDB    │
-          │  (v1 or v2)  │
-          └──────┬───────┘
-                 │
-                 ▼
-          ┌─────────────┐
-          │   Grafana    │
-          │ (dashboards) │
-          └─────────────┘
+          ┌────────────────┐
+          │   InfluxDB     │
+          │  (v1 or v2)    │
+          │       or       │
+          │  Prometheus    │
+          └───────┬────────┘
+                  │
+                  ▼
+          ┌────────────────┐
+          │    Grafana     │
+          │ (dashboards)   │
+          └────────────────┘
 ```
 
 Both collectors run independently, querying one or more OneFS clusters via
