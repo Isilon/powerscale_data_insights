@@ -216,6 +216,36 @@ slots) by default, showing only SAS and SSD drives.
 drive_id (multi-select with include-all, populated from selected cluster
 and drive type)
 
+### PowerScale - System Workload (PP Dataset 0)
+
+**File:** `system_workload.json`
+
+OneFS system process resource consumption from Partitioned Performance
+Dataset 0 ("System"). This dataset is predefined and always available on
+OneFS 9.x+ clusters. Shows which OneFS daemons and system processes are
+consuming CPU, performing I/O, and generating latency.
+
+> **Note:** This dashboard uses `cluster.performance.dataset.0` data
+> collected by goppstats. Dataset 0 is always present -- no PP dataset
+> configuration is needed.
+
+**Overview stats:**
+- Total CPU (ms), total ops, bytes in/out
+
+**Time-series panels:**
+- CPU by System Process (the headline panel -- find runaway processes)
+- Operations by System Process
+- Reads and Writes by System Process
+- Bytes In (Write) and Bytes Out (Read) by System Process
+- Read, Write, and Other Latency by System Process (µs → ms)
+- L2 and L3 Cache Hits by System Process
+- Total CPU by Node (find imbalanced nodes)
+
+**Units:** CPU in microseconds (displayed as ms), latency in microseconds
+(displayed as ms), bytes_in/out in bytes/s, ops/reads/writes as counts.
+
+**Variables:** cluster (single-select), node (multi-select with include-all)
+
 ## Thresholds
 
 The dashboards use consistent threshold values:
