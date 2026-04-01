@@ -113,6 +113,38 @@ abnormal latency or queue depth, especially on large clusters.
 **Variables:** cluster (single-select), node (multi-select with include-all,
 populated from selected cluster)
 
+### PowerScale - Protocol Summary Stats
+
+**File:** `protocol_summary.json`
+
+Per-node, per-operation protocol statistics using OneFS summary statistics.
+Provides deeper analysis than the Protocol Detail dashboard, with full
+latency distribution (avg/min/max/stddev) and per-operation breakdowns.
+
+> **Note:** This dashboard uses `node.summary.protocol` data which requires
+> `protocol = true` in the `[summary_stats]` config section. The Protocol
+> Detail dashboard uses `cluster.protostats.*` data which is always collected.
+> Use Protocol Detail for cluster-level overview; use Protocol Summary Stats
+> for per-node, per-operation drill-down with latency distribution.
+
+**Overview stats:**
+- Total ops/s, average latency, inbound/outbound throughput
+
+**Time-series panels:**
+- Operation Rate by Class (read, write, namespace_read, etc.)
+- Operation Rate by Operation (getattr, setattr, write, etc.)
+- Average Latency by Class
+- Average Latency by Operation
+- Latency Distribution (average, maximum, minimum, standard deviation)
+- Inbound (Write) Throughput by Operation
+- Outbound (Read) Throughput by Operation
+- Operation Rate by Node (identify hot nodes)
+- Average Latency by Node (identify slow nodes)
+
+**Variables:** cluster (single-select), protocol (single-select: nfs3, nfs4,
+smb1, smb2, etc.), node (multi-select with include-all, populated from
+selected cluster)
+
 ## Thresholds
 
 The dashboards use consistent threshold values:
