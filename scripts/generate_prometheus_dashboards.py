@@ -212,9 +212,136 @@ def gen_cluster_capacity():
     write_dashboard(d, "cluster_capacity.json")
 
 # ══════════════════════════════════════════════════════════════════
+# 2. Cluster List
+# ══════════════════════════════════════════════════════════════════
+
+def gen_cluster_list():
+    pid = 1
+    y = 0
+    panels = []
+    C = '{cluster=~"$cluster"}'  # common label filter
+
+    # Repeating row
+    panels.append({
+        "id": 200, "type": "row",
+        "title": "Cluster: $cluster",
+        "collapsed": False,
+        "repeat": "cluster", "repeatDirection": "h",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": y},
+        "panels": []
+    })
+    y += 1
+
+    # Row 1: Link + core stats (w=4 each)
+    panels.append({
+        "id": pid, "type": "text", "title": "$cluster", "transparent": True,
+        "gridPos": {"h": 4, "w": 4, "x": 0, "y": y},
+        "options": {"mode": "markdown",
+                    "content": "### [$cluster](/d/powerscale-cluster-detail/powerscale-cluster-detail?var-cluster=$cluster)\n\n[WebUI](https://$cluster:8080/)",
+                    "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False}}
+    })
+    pid += 1
+
+    # Total Nodes
+    panels.append(stat_panel(pid, "Total Nodes",
+        prom_target("A", f'isilon_stat_cluster_node_count_all{C}', "{{{{cluster}}}}"),
+        y=y, x=4, w=4, h=4, unit="none", decimals=0, graph_mode="none"))
+    pid += 1
+
+    # Nodes Down
+    panels.append(stat_panel(pid, "Nodes Down",
+        prom_target("A", f'isilon_stat_cluster_node_count_down{C}', "{{{{cluster}}}}"),
+        y=y, x=8, w=4, h=4, unit="none", decimals=0, color_mode="background",
+        graph_mode="none",
+        thresholds={"mode": "absolute", "steps": [
+            {"color": GREEN_ORANGE_RED[0], "value": None},
+            {"color": GREEN_ORANGE_RED[1], "value": 1},
+            {"color": GREEN_ORANGE_RED[2], "value": 2}
+        ]}))
+    pid += 1
+
+    # Alert Status
+    panels.append(stat_panel(pid, "Alert Status",
+        prom_target("A", f'isilon_stat_cluster_health{C}', "{{{{cluster}}}}"),
+        y=y, x=12, w=4, h=4, unit="none", color_mode="background",
+        graph_mode="none", calc="mean",
+        thresholds={"mode": "absolute", "steps": [
+            {"color": GREEN_ORANGE_RED[0], "value": None},
+            {"color": GREEN_ORANGE_RED[1], "value": 0.0001},
+            {"color": GREEN_ORANGE_RED[2], "value": 2}
+        ]},
+        mappings=[{"type": "value", "options": {
+            "0": {"text": "Healthy", "index": 0},
+            "1": {"text": "Attention", "index": 1},
+            "2": {"text": "Down", "index": 2}
+        }}]))
+    pid += 1
+
+    # CPU (gauge)
+    panels.append(gauge_panel(pid, "Cluster CPU",
+        prom_target("A", f'1 - isilon_stat_cluster_cpu_idle_avg{C} / 1000', "{{{{cluster}}}}"),
+        y=y, x=16, w=4, h=4, unit="percentunit", min_val=0, max_val=1,
+        thresholds={"mode": "absolute", "steps": [
+            {"color": GREEN_ORANGE_RED[0], "value": None},
+            {"color": GREEN_ORANGE_RED[1], "value": 0.80},
+            {"color": GREEN_ORANGE_RED[2], "value": 0.95}
+        ]}))
+    pid += 1
+
+    # Capacity (gauge)
+    panels.append(gauge_panel(pid, "Cluster Capacity",
+        prom_target("A", f'100 - isilon_stat_ifs_percent_avail{C}', "{{{{cluster}}}}"),
+        y=y, x=20, w=4, h=4, unit="percent", min_val=0, max_val=100,
+        thresholds={"mode": "absolute", "steps": [
+            {"color": GREEN_ORANGE_RED[0], "value": None},
+            {"color": GREEN_ORANGE_RED[1], "value": 80},
+            {"color": GREEN_ORANGE_RED[2], "value": 90}
+        ]}))
+    pid += 1
+    y += 4
+
+    # Row 2: Protocol stats (w=4 each)
+    proto_panels = [
+        ("NFSv3 Throughput", f'isilon_stat_cluster_protostats_nfs_total_in_rate{C} + isilon_stat_cluster_protostats_nfs_total_out_rate{C}', "Bps", None, False, None),
+        ("NFSv3 Op/s", f'isilon_stat_cluster_protostats_nfs_total_op_rate{C}', "ops", 0, False, None),
+        ("NFSv3 Latency", f'isilon_stat_cluster_protostats_nfs_total_time_avg{C} / 1000', "ms", 1, True,
+         {"mode": "absolute", "steps": [
+            {"color": GREEN_ORANGE_RED[0], "value": None},
+            {"color": GREEN_ORANGE_RED[1], "value": 10},
+            {"color": GREEN_ORANGE_RED[2], "value": 25}]}),
+        ("SMB2 Throughput", f'isilon_stat_cluster_protostats_smb2_total_in_rate{C} + isilon_stat_cluster_protostats_smb2_total_out_rate{C}', "Bps", None, False, None),
+        ("SMB2 Op/s", f'isilon_stat_cluster_protostats_smb2_total_op_rate{C}', "ops", 0, False, None),
+        ("SMB2 Latency", f'isilon_stat_cluster_protostats_smb2_total_time_avg{C} / 1000', "ms", 1, True,
+         {"mode": "absolute", "steps": [
+            {"color": GREEN_ORANGE_RED[0], "value": None},
+            {"color": GREEN_ORANGE_RED[1], "value": 10},
+            {"color": GREEN_ORANGE_RED[2], "value": 25}]}),
+    ]
+    for i, (title, expr, unit, dec, bg, th) in enumerate(proto_panels):
+        p = stat_panel(pid, title,
+            prom_target("A", expr, "{{cluster}}"),
+            y=y, x=i*4, w=4, h=4, unit=unit, decimals=dec,
+            color_mode="background" if bg else "value",
+            thresholds=th)
+        panels.append(p)
+        pid += 1
+    y += 4
+
+    d = make_dashboard(
+        "PowerScale - Cluster List",
+        "Multi-cluster overview for Dell PowerScale clusters",
+        ["powerscale", "gostats", "prometheus"],
+        "now-15m", "30s",
+        [cluster_var(multi=True, include_all=True)],
+        panels
+    )
+    write_dashboard(d, "cluster_list.json")
+
+# ══════════════════════════════════════════════════════════════════
 # Generate all
 # ══════════════════════════════════════════════════════════════════
 
 print("Generating Prometheus dashboards...")
 gen_cluster_capacity()
+gen_cluster_list()
 print("Done!")
