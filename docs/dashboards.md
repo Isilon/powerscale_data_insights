@@ -179,6 +179,43 @@ latency -- invaluable for "who's hammering the cluster" investigations.
 **Variables:** cluster (single-select), node (multi-select with include-all),
 protocol (multi-select with include-all, populated from active protocols)
 
+### PowerScale - Drive Summary Stats
+
+**File:** `drive_summary.json`
+
+Per-physical-drive performance and capacity dashboard using OneFS drive
+summary statistics. Shows individual drive latency, throughput, utilization,
+and capacity -- useful for identifying failing or overloaded drives.
+
+> **Note:** This dashboard uses `node.summary.drive` data which requires
+> `drive = true` in the `[summary_stats]` config section. The Drive
+> Statistics dashboard uses `node.disk.*` data (per-node averages) which
+> is always collected. Use Drive Statistics for node-level overview; use
+> Drive Summary Stats for per-physical-drive drill-down.
+
+**Drive Type variable** filters out `UNKNOWN` type (empty/unpopulated drive
+slots) by default, showing only SAS and SSD drives.
+
+**Overview stats:**
+- Total drive IOPS, avg access latency, avg iosched latency, avg busy %
+
+**Drive Health Summary table:**
+- Per-drive: drive ID (node:bay), type, access latency, iosched latency,
+  queue depth, busy %, slow accesses, capacity used %
+- Sorted by access latency descending (worst drives first)
+- Color-coded thresholds
+
+**Time-series panels:**
+- Access Latency and I/O Scheduler Latency by Drive
+- I/O Scheduler Queue Depth and Drive Busy % by Drive
+- Drive Throughput and IOPS by Drive (reads positive, writes negative)
+- Average I/O Size and Slow Accesses by Drive
+- Drive Capacity Used % by Drive
+
+**Variables:** cluster (single-select), type (multi-select: SAS, SSD),
+drive_id (multi-select with include-all, populated from selected cluster
+and drive type)
+
 ## Thresholds
 
 The dashboards use consistent threshold values:

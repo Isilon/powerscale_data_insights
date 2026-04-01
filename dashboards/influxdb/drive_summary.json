@@ -1,0 +1,1423 @@
+{
+  "id": null,
+  "uid": null,
+  "title": "PowerScale - Drive Summary Stats",
+  "description": "Per-physical-drive performance and capacity statistics. Uses OneFS drive summary statistics. Filters out empty drive slots.",
+  "tags": [
+    "powerscale",
+    "gostats",
+    "summary"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "refresh": "30s",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "DS_INFLUXDB"
+        },
+        "query": "SHOW TAG VALUES WITH KEY = \"cluster\"",
+        "definition": "SHOW TAG VALUES WITH KEY = \"cluster\"",
+        "sort": 3,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      },
+      {
+        "name": "type",
+        "label": "Drive Type",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "DS_INFLUXDB"
+        },
+        "query": "SHOW TAG VALUES FROM \"node.summary.drive\" WITH KEY = \"type\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" != 'UNKNOWN'",
+        "definition": "SHOW TAG VALUES FROM \"node.summary.drive\" WITH KEY = \"type\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" != 'UNKNOWN'",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": "",
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      },
+      {
+        "name": "drive_id",
+        "label": "Drive",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "DS_INFLUXDB"
+        },
+        "query": "SHOW TAG VALUES FROM \"node.summary.drive\" WITH KEY = \"drive_id\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/",
+        "definition": "SHOW TAG VALUES FROM \"node.summary.drive\" WITH KEY = \"drive_id\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/",
+        "sort": 3,
+        "multi": true,
+        "includeAll": true,
+        "allValue": "",
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Drive IOPS",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT sum(\"xfers_in\") + sum(\"xfers_out\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ops",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Avg Access Latency",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"access_latency\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND \"access_latency\" > 0 AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg IOSched Latency",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"iosched_latency\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND \"iosched_latency\" > 0 AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ms",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Avg Busy %",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"busy\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND \"busy\" > 0 AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Drive Health Summary",
+      "description": "Current metrics per physical drive. Sorted by access latency (worst first). Color thresholds highlight problem drives.",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"access_latency\") AS \"Access Latency (ms)\" FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY \"drive_id\", \"type\"",
+          "resultFormat": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"iosched_latency\") AS \"IOSched Latency (ms)\" FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY \"drive_id\", \"type\"",
+          "resultFormat": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"iosched_queue\") AS \"Queue Depth\" FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY \"drive_id\", \"type\"",
+          "resultFormat": "table"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"busy\") AS \"Busy %\" FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY \"drive_id\", \"type\"",
+          "resultFormat": "table"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"access_slow\") AS \"Slow/s\" FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY \"drive_id\", \"type\"",
+          "resultFormat": "table"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"used_bytes_percent\") AS \"Capacity Used %\" FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY \"drive_id\", \"type\"",
+          "resultFormat": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "drive_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Drive"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "type"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Type"
+              },
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Access Latency (ms)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IOSched Latency (ms)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Queue Depth"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 20
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Busy %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 50
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Slow/s"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Capacity Used %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 80
+                    },
+                    {
+                      "color": "red",
+                      "value": 90
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Access Latency (ms)",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        }
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Access Latency by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"access_latency\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Latency"
+          },
+          "unit": "ms",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "I/O Scheduler Latency by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"iosched_latency\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Latency"
+          },
+          "unit": "ms",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "I/O Scheduler Queue Depth by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"iosched_queue\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Queue Depth"
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Drive Busy % by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"busy\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Busy %"
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Drive Throughput by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"bytes_out\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id Read"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT (mean(\"bytes_in\")) * -1 FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id Write"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Throughput"
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Drive IOPS by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"xfers_out\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id Read"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT (mean(\"xfers_in\")) * -1 FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id Write"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "IOPS"
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Average I/O Size by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 64
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"xfer_size_out\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id Read"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"xfer_size_in\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id Write"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "I/O Size"
+          },
+          "unit": "bytes",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Slow Accesses by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 72
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"access_slow\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Slow/s"
+          },
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Drive Capacity Used % by Drive",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 80
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT mean(\"used_bytes_percent\") FROM \"node.summary.drive\" WHERE \"cluster\" =~ /^$cluster$/ AND \"type\" =~ /^$type$/ AND \"drive_id\" =~ /^$drive_id$/ AND $timeFilter GROUP BY time($__interval), \"drive_id\" fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$tag_drive_id"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            },
+            "axisLabel": "Used %"
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ],
+  "links": []
+}
