@@ -338,10 +338,226 @@ def gen_cluster_list():
     write_dashboard(d, "cluster_list.json")
 
 # ══════════════════════════════════════════════════════════════════
+# 3. Cluster Detail
+# ══════════════════════════════════════════════════════════════════
+
+def gen_cluster_detail():
+    pid = 1
+    y = 0
+    panels = []
+    C = '{cluster=~"$cluster"}'
+
+    # ── Welcome row (collapsed) ──
+    panels.append({
+        "id": 100, "type": "row",
+        "title": "Welcome to the PowerScale Cluster Detail Dashboard",
+        "collapsed": True,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": y},
+        "panels": [{
+            "id": 101, "type": "text",
+            "title": "Welcome to the PowerScale Cluster Detail Dashboard",
+            "gridPos": {"h": 6, "w": 24, "x": 0, "y": y + 1},
+            "options": {"mode": "markdown",
+                        "content": "Use the cluster dropdown to select a cluster. All panels show data for the selected cluster.",
+                        "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False}}
+        }]
+    })
+    y += 1
+
+    # ── Status panels: 2 rows like cluster list ──
+    panels.append({
+        "id": pid, "type": "text", "title": "$cluster", "transparent": True,
+        "gridPos": {"h": 4, "w": 4, "x": 0, "y": y},
+        "options": {"mode": "markdown",
+                    "content": "### $cluster\n\n[WebUI](https://$cluster:8080/)",
+                    "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False}}
+    })
+    pid += 1
+
+    stat_defs = [
+        ("Total Nodes", f'isilon_stat_cluster_node_count_all{C}', "none", 0, False, "none", "lastNotNull", None, None),
+        ("Nodes Down", f'isilon_stat_cluster_node_count_down{C}', "none", 0, True, "none", "lastNotNull",
+         {"mode": "absolute", "steps": [{"color": GREEN_ORANGE_RED[0], "value": None}, {"color": GREEN_ORANGE_RED[1], "value": 1}, {"color": GREEN_ORANGE_RED[2], "value": 2}]}, None),
+        ("Alert Status", f'isilon_stat_cluster_health{C}', "none", None, True, "none", "mean",
+         {"mode": "absolute", "steps": [{"color": GREEN_ORANGE_RED[0], "value": None}, {"color": GREEN_ORANGE_RED[1], "value": 0.0001}, {"color": GREEN_ORANGE_RED[2], "value": 2}]},
+         [{"type": "value", "options": {"0": {"text": "Healthy"}, "1": {"text": "Attention"}, "2": {"text": "Down"}}}]),
+    ]
+    x = 4
+    for title, expr, unit, dec, bg, gm, calc, th, maps in stat_defs:
+        p = stat_panel(pid, title, prom_target("A", expr), y=y, x=x, w=4, h=4, unit=unit, decimals=dec,
+                       color_mode="background" if bg else "value", graph_mode=gm, calc=calc, thresholds=th, mappings=maps)
+        panels.append(p)
+        pid += 1
+        x += 4
+
+    # CPU and Capacity as gauges
+    panels.append(gauge_panel(pid, "Cluster CPU",
+        prom_target("A", f'1 - isilon_stat_cluster_cpu_idle_avg{C} / 1000'),
+        y=y, x=16, w=4, h=4, unit="percentunit", min_val=0, max_val=1,
+        thresholds={"mode": "absolute", "steps": [{"color": GREEN_ORANGE_RED[0], "value": None}, {"color": GREEN_ORANGE_RED[1], "value": 0.80}, {"color": GREEN_ORANGE_RED[2], "value": 0.95}]}))
+    pid += 1
+    panels.append(gauge_panel(pid, "Cluster Capacity",
+        prom_target("A", f'100 - isilon_stat_ifs_percent_avail{C}'),
+        y=y, x=20, w=4, h=4, unit="percent", min_val=0, max_val=100,
+        thresholds={"mode": "absolute", "steps": [{"color": GREEN_ORANGE_RED[0], "value": None}, {"color": GREEN_ORANGE_RED[1], "value": 80}, {"color": GREEN_ORANGE_RED[2], "value": 90}]}))
+    pid += 1
+    y += 4
+
+    # Protocol stats row
+    proto_panels = [
+        ("NFSv3 Throughput", f'isilon_stat_cluster_protostats_nfs_total_in_rate{C} + isilon_stat_cluster_protostats_nfs_total_out_rate{C}', "Bps", None, False, None),
+        ("NFSv3 Op/s", f'isilon_stat_cluster_protostats_nfs_total_op_rate{C}', "ops", 0, False, None),
+        ("NFSv3 Latency", f'isilon_stat_cluster_protostats_nfs_total_time_avg{C} / 1000', "ms", 1, True,
+         {"mode": "absolute", "steps": [{"color": GREEN_ORANGE_RED[0], "value": None}, {"color": GREEN_ORANGE_RED[1], "value": 10}, {"color": GREEN_ORANGE_RED[2], "value": 25}]}),
+        ("SMB2 Throughput", f'isilon_stat_cluster_protostats_smb2_total_in_rate{C} + isilon_stat_cluster_protostats_smb2_total_out_rate{C}', "Bps", None, False, None),
+        ("SMB2 Op/s", f'isilon_stat_cluster_protostats_smb2_total_op_rate{C}', "ops", 0, False, None),
+        ("SMB2 Latency", f'isilon_stat_cluster_protostats_smb2_total_time_avg{C} / 1000', "ms", 1, True,
+         {"mode": "absolute", "steps": [{"color": GREEN_ORANGE_RED[0], "value": None}, {"color": GREEN_ORANGE_RED[1], "value": 10}, {"color": GREEN_ORANGE_RED[2], "value": 25}]}),
+    ]
+    for i, (title, expr, unit, dec, bg, th) in enumerate(proto_panels):
+        panels.append(stat_panel(pid, title, prom_target("A", expr), y=y, x=i*4, w=4, h=4, unit=unit,
+                                 decimals=dec, color_mode="background" if bg else "value", thresholds=th))
+        pid += 1
+    y += 4
+
+    # ── Graph panels ──
+
+    # Capacity Utilization
+    panels.append(timeseries_panel(pid, "Cluster Capacity Utilization", [
+        prom_target("A", f'100 - isilon_stat_ifs_percent_avail{C}', "Cluster Capacity Utilization")
+    ], y=y, unit="percent", axis_label="Cluster Capacity Utilization", axis_min=0))
+    pid += 1; y += 8
+
+    # CPU (stacked)
+    panels.append(timeseries_panel(pid, "Cluster CPU for $cluster", [
+        prom_target("A", f'isilon_stat_cluster_cpu_intr_avg{C} / 1000', "Interrupt"),
+        prom_target("B", f'isilon_stat_cluster_cpu_sys_avg{C} / 1000', "System"),
+        prom_target("C", f'isilon_stat_cluster_cpu_user_avg{C} / 1000', "User"),
+        prom_target("D", f'isilon_stat_cluster_cpu_idle_avg{C} / 1000', "Idle"),
+    ], y=y, unit="percentunit", axis_min=0, axis_max=1, fill_opacity=40,
+       stacking={"mode": "normal", "group": "A"},
+       overrides=[
+           {"matcher": {"id": "byName", "options": "Idle"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#508642"}}]},
+           {"matcher": {"id": "byName", "options": "System"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#BF1B00"}}]},
+           {"matcher": {"id": "byName", "options": "User"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#EAB839"}}]},
+       ]))
+    pid += 1; y += 8
+
+    # Protocol Operations and CPU
+    panels.append(timeseries_panel(pid, "Cluster Protocol Operations and CPU for $cluster", [
+        prom_target("A", f'1 - isilon_stat_cluster_cpu_idle_avg{C} / 1000', "CPU"),
+        prom_target("B",
+            f'label_replace({{__name__=~"isilon_stat_cluster_protostats_.*_total_op_rate",cluster=~"$cluster"}}, "protocol", "$1", "__name__", "isilon_stat_cluster_protostats_(.*)_total_op_rate")',
+            "{{protocol}} ops"),
+    ], y=y, unit="ops", axis_label="Protocol Operations per Second", axis_min=0,
+       overrides=[
+           {"matcher": {"id": "byName", "options": "CPU"}, "properties": [
+               {"id": "custom.drawStyle", "value": "line"}, {"id": "custom.fillOpacity", "value": 0},
+               {"id": "custom.axisPlacement", "value": "right"}, {"id": "unit", "value": "percentunit"},
+               {"id": "min", "value": 0}, {"id": "max", "value": 1},
+               {"id": "color", "value": {"mode": "fixed", "fixedColor": "#7EB26D"}}
+           ]},
+       ]))
+    pid += 1; y += 8
+
+    # Client Connections (stepped line)
+    panels.append(timeseries_panel(pid, "Active Client Connections by Protocol for $cluster", [
+        prom_target("A",
+            f'label_replace(sum by (__name__) ({{__name__=~"isilon_stat_node_clientstats_active_.*",cluster=~"$cluster"}}), "protocol", "$1", "__name__", "isilon_stat_node_clientstats_active_(.*)")',
+            "{{protocol}} connections"),
+    ], y=y, unit="short", axis_label="Connections",
+       overrides=[{"matcher": {"id": "byFrameRefID", "options": "A"}, "properties": [
+           {"id": "custom.lineInterpolation", "value": "stepAfter"}
+       ]}]))
+    pid += 1; y += 8
+
+    # Open Files
+    panels.append(timeseries_panel(pid, "Open Files for $cluster", [
+        prom_target("A", f'sum(isilon_stat_node_open_files{C})', "Open files"),
+    ], y=y, unit="short", axis_label="Open File Count", axis_min=0,
+       overrides=[{"matcher": {"id": "byFrameRefID", "options": "A"}, "properties": [
+           {"id": "custom.drawStyle", "value": "bars"}
+       ]}]))
+    pid += 1; y += 8
+
+    # Network Traffic (negative-Y for inbound)
+    panels.append(timeseries_panel(pid, "Cluster Network Traffic for $cluster", [
+        prom_target("A", f'-isilon_stat_cluster_net_ext_bytes_in_rate{C}', "Bytes In"),
+        prom_target("B", f'isilon_stat_cluster_net_ext_bytes_out_rate{C}', "Bytes Out"),
+    ], y=y, unit="Bps", axis_label="Throughput"))
+    pid += 1; y += 8
+
+    # Network/IFS/Disk Throughput (negative-Y for writes)
+    panels.append(timeseries_panel(pid, "Cluster Network, File System and Disk Throughput for $cluster", [
+        prom_target("A", f'isilon_stat_cluster_net_ext_bytes_out_rate{C}', "Network Read"),
+        prom_target("B", f'isilon_stat_ifs_bytes_out_rate{C}', "IFS Read"),
+        prom_target("C", f'isilon_stat_cluster_disk_bytes_out_rate{C}', "Disk Read"),
+        prom_target("D", f'-isilon_stat_cluster_net_ext_bytes_in_rate{C}', "Network Write"),
+        prom_target("E", f'-isilon_stat_ifs_bytes_in_rate{C}', "IFS Write"),
+        prom_target("F", f'-isilon_stat_cluster_disk_bytes_in_rate{C}', "Disk Write"),
+    ], y=y, unit="Bps", axis_label="Throughput"))
+    pid += 1; y += 8
+
+    # Network Errors
+    panels.append(timeseries_panel(pid, "Cluster Network Errors for $cluster", [
+        prom_target("A", f'isilon_stat_cluster_net_ext_errors_in_rate{C}', "Inbound Errors"),
+        prom_target("B", f'isilon_stat_cluster_net_ext_errors_out_rate{C}', "Outbound Errors"),
+    ], y=y, unit="short", axis_label="Errors per Second", axis_min=0,
+       overrides=[
+           {"matcher": {"id": "byName", "options": "Inbound Errors"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#890F02"}}]},
+           {"matcher": {"id": "byName", "options": "Outbound Errors"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "#962D82"}}]},
+       ]))
+    pid += 1; y += 8
+
+    # Job Engine Activity
+    panels.append(timeseries_panel(pid, "Job Engine Activity for $cluster", [
+        prom_target("A", f'isilon_stat_cluster_protostats_jobd_total_op_rate{C}', "Job Engine"),
+    ], y=y, unit="ops", axis_label="Job Engine Operations per Second", axis_min=0, span_nulls=False))
+    pid += 1; y += 8
+
+    # OneFS File System Events
+    panels.append(timeseries_panel(pid, "OneFS File System Events", [
+        prom_target("A",
+            f'label_replace(sum by (__name__) ({{__name__=~"isilon_stat_node_ifs_heat_.*_total",cluster=~"$cluster"}}), "event", "$1", "__name__", "isilon_stat_node_ifs_heat_(.*)_total")',
+            "{{event}}"),
+    ], y=y, unit="short"))
+    pid += 1; y += 8
+
+    # Cache Stats (9 queries + dual axis for Oldest Page Age)
+    panels.append(timeseries_panel(pid, "Cache Stats for $cluster", [
+        prom_target("A", f'sum(isilon_stat_node_ifs_cache_l1_data_prefetch_hit{C}) / sum(isilon_stat_node_ifs_cache_l1_data_prefetch_start{C})', "L1 Data Prefetch Hit Ratio"),
+        prom_target("B", f'sum(isilon_stat_node_ifs_cache_l1_meta_prefetch_hit{C}) / sum(isilon_stat_node_ifs_cache_l1_meta_prefetch_start{C})', "L1 Meta-Data Prefetch Hit Ratio"),
+        prom_target("C", f'sum(isilon_stat_node_ifs_cache_l1_data_read_hit{C}) / sum(isilon_stat_node_ifs_cache_l1_data_read_start{C})', "L1 Data Read Hit Ratio"),
+        prom_target("D", f'sum(isilon_stat_node_ifs_cache_l1_meta_read_hit{C}) / sum(isilon_stat_node_ifs_cache_l1_meta_read_start{C})', "L1 Meta-Data Read Hit Ratio"),
+        prom_target("E", f'sum(isilon_stat_node_ifs_cache_l2_data_read_hit{C}) / sum(isilon_stat_node_ifs_cache_l2_data_read_start{C})', "L2 Data Read Hit Ratio"),
+        prom_target("F", f'sum(isilon_stat_node_ifs_cache_l2_meta_read_hit{C}) / sum(isilon_stat_node_ifs_cache_l2_meta_read_start{C})', "L2 Meta-Data Read Hit Ratio"),
+        prom_target("G", f'sum(isilon_stat_node_ifs_cache_l3_data_read_hit{C}) / sum(isilon_stat_node_ifs_cache_l3_data_read_start{C})', "L3 Data Read Hit Ratio"),
+        prom_target("H", f'sum(isilon_stat_node_ifs_cache_l3_meta_read_hit{C}) / sum(isilon_stat_node_ifs_cache_l3_meta_read_start{C})', "L3 Meta-Data Read Hit Ratio"),
+        prom_target("I", f'avg(isilon_stat_node_ifs_cache_oldest_page_age{C})', "Oldest Page Age"),
+    ], y=y, unit="percentunit", axis_min=0,
+       overrides=[
+           {"matcher": {"id": "byName", "options": "Oldest Page Age"}, "properties": [
+               {"id": "custom.axisPlacement", "value": "right"}, {"id": "unit", "value": "ms"}
+           ]},
+       ]))
+    pid += 1; y += 8
+
+    d = make_dashboard(
+        "PowerScale - Cluster Detail",
+        "Detailed performance metrics for a single Dell PowerScale cluster",
+        ["powerscale", "gostats", "prometheus"],
+        "now-1h", "30s",
+        [cluster_var(multi=False, include_all=False)],
+        panels
+    )
+    write_dashboard(d, "cluster_detail.json")
+
+# ══════════════════════════════════════════════════════════════════
 # Generate all
 # ══════════════════════════════════════════════════════════════════
 
 print("Generating Prometheus dashboards...")
 gen_cluster_capacity()
 gen_cluster_list()
+gen_cluster_detail()
 print("Done!")
