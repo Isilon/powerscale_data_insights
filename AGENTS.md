@@ -20,23 +20,24 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - Five shared internal packages extracted (see Architecture below)
 - goppstats refactored: PP data converts to generic Points before backends
 - All duplicated code between collectors eliminated
-- 4 core Grafana dashboards created in legacy format (schemaVersion 39,
-  modern panel types, InfluxQL, compatible with Grafana 10+)
+- 9 Grafana dashboards for InfluxDB and 9 for Prometheus, all generated
+  from unified Python scripts (`scripts/generate_all.py`). Each dashboard
+  includes a README text panel. Shared helpers in `scripts/dashlib.py`.
 - dashgen rewritten to produce legacy format (was v2beta1)
 - dashgen enhanced with `-backend` flag: generates InfluxDB (default) or
   Prometheus (PromQL) dashboards for PP datasets
 - All builds and tests pass (`make build && make test`)
 - Multi-stage Dockerfiles for gostats and goppstats (~23MB images)
-- Docker Compose evaluation stack (InfluxDB + Grafana + collectors)
-- Docker-specific example configs (stdout logging, InfluxDB host pre-set)
-- Grafana provisioning (auto-configured InfluxDB datasource + dashboard loading)
+- Docker Compose evaluation stacks (InfluxDB + Grafana and Prometheus +
+  Grafana), both tested end-to-end against multi-cluster OneFS environment
+- Docker-specific example configs (stdout logging, backend host pre-set)
+- Grafana provisioning (auto-configured datasource + dashboard loading)
 - `.goreleaser.yaml` for cross-platform binary releases (3 binaries, 6 platforms)
 - GitHub Actions CI (build + test on push/PR) and release (GoReleaser + Docker push on tag)
 - Full documentation suite (README, architecture, getting-started, config
   reference, dashboards, deployment, OneFS setup, migration guide)
 
 ### What's next
-- End-to-end Docker Compose testing (requires OneFS cluster + InfluxDB + Grafana)
 - Phase 6: Release
 
 ### Backlog (post-release)
