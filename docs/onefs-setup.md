@@ -26,7 +26,7 @@ isi auth roles create --name=StatsCollector \
   --description="PowerScale Data Insights statistics collection"
 
 isi auth roles modify StatsCollector \
-  --add-priv=ISI_PRIV_STATISTICS \
+  --add-priv-ro=ISI_PRIV_STATISTICS \
   --add-priv-ro=ISI_PRIV_PERFORMANCE
 
 # Optional: add NFS privilege for export path resolution
