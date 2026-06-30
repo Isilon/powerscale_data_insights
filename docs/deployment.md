@@ -9,78 +9,54 @@ containers, or as a full evaluation stack via Docker Compose.
 
 Download pre-built binaries from the
 [GitHub Releases](https://github.com/Isilon/powerscale_data_insights/releases)
-page, or build from source:
+page, or build and install from source:
 
 ```bash
 make build
-sudo cp bin/gostats bin/goppstats bin/dashgen /usr/local/bin/
+sudo make install
+# Installs binaries to /usr/local/bin and example configs to
+# /etc/powerscale-data-insights/. Starter configs are written only if
+# they do not already exist.
+```
+
+To install to a different prefix (e.g. `/opt/pdi`):
+
+```bash
+sudo make install PREFIX=/opt/pdi
+```
+
+For package builds, set `DESTDIR`:
+
+```bash
+make install DESTDIR=/tmp/pkg-root
 ```
 
 ### Configuration
 
+The installer copies starter configs to `/etc/powerscale-data-insights/`.
+Edit them with your cluster and InfluxDB details:
+
 ```bash
-sudo mkdir -p /etc/powerscale-data-insights
-sudo cp configs/gostats.example.toml /etc/powerscale-data-insights/gostats.toml
-sudo cp configs/goppstats.example.toml /etc/powerscale-data-insights/goppstats.toml
+sudo $EDITOR /etc/powerscale-data-insights/gostats.toml
+sudo $EDITOR /etc/powerscale-data-insights/goppstats.toml
 ```
 
-Edit both files with your cluster and InfluxDB details. See
-[Configuration Reference](configuration.md).
+See [Configuration Reference](configuration.md).
 
 ### systemd Service Files
 
-Create `/etc/systemd/system/pdi-gostats.service`:
+Service files are included in the `systemd/` directory and can be installed with:
 
-```ini
-[Unit]
-Description=PowerScale Data Insights - Statistics Collector
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/gostats -config-file /etc/powerscale-data-insights/gostats.toml
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=on-failure
-RestartSec=10
-User=pdi
-Group=pdi
-
-# Hardening
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/log/powerscale-data-insights
-
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo make install-systemd
 ```
 
-Create `/etc/systemd/system/pdi-goppstats.service`:
+This copies `systemd/pdi-gostats.service` and `systemd/pdi-goppstats.service`
+to `/etc/systemd/system/` and prints the remaining setup steps. If you need to
+install to a different location:
 
-```ini
-[Unit]
-Description=PowerScale Data Insights - Partitioned Performance Collector
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/goppstats -config-file /etc/powerscale-data-insights/goppstats.toml
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=on-failure
-RestartSec=10
-User=pdi
-Group=pdi
-
-# Hardening
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=/var/log/powerscale-data-insights
-
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo make install-systemd SYSTEMDDIR=/usr/lib/systemd/system
 ```
 
 Enable and start:

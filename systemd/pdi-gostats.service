@@ -1,0 +1,22 @@
+[Unit]
+Description=PowerScale Data Insights - Statistics Collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gostats -config-file /etc/powerscale-data-insights/gostats.toml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+User=pdi
+Group=pdi
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/powerscale-data-insights
+
+[Install]
+WantedBy=multi-user.target

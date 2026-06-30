@@ -171,3 +171,4 @@ for more details on dashgen usage.
 - [Dashboards](dashboards.md) — dashboard descriptions and dashgen guide
 - [Deployment](deployment.md) — systemd, Docker, Kubernetes
 - [Migrating from v1](migrating-from-v1.md) — if upgrading from the Python connector
+- [Migrating from standalone gostats/goppstats](migrating-from-standalone-collectors.md) — if already running the Go collectors from the separate repos

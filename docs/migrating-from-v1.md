@@ -4,6 +4,12 @@ This guide is for users of the
 [Isilon Data Insights Connector](https://github.com/Isilon/isilon_data_insights_connector)
 (the Python-based collector) who are upgrading to PowerScale Data Insights v2.
 
+If you already switched to the standalone Go collectors
+([gostats](https://github.com/tenortim/gostats) /
+[goppstats](https://github.com/tenortim/goppstats)) before moving here, see
+[Migrating from standalone collectors](migrating-from-standalone-collectors.md)
+instead — the process is much simpler.
+
 ## What Changed
 
 | Area | v1 (Python) | v2 (Go) |
