@@ -123,7 +123,8 @@ docker run -d -v /path/to/goppstats.toml:/etc/goppstats/goppstats.toml pdi-gopps
 ```
 
 Import the generated JSON into Grafana, or use the pre-built dashboards in
-`dashboards/influxdb/`.
+`dashboards/import/influxdb/` (importing into an existing Grafana instance
+prompts you to pick a datasource; see [Dashboards](docs/dashboards.md#importing-dashboards)).
 
 ## Documentation
 
@@ -145,6 +146,7 @@ powerscale_data_insights/
 │   └── dashgen/          Dashboard generator
 ├── internal/             Shared library (PAPI client, backends, config, logging)
 ├── dashboards/influxdb/  Pre-built Grafana dashboards (InfluxQL)
+├── dashboards/import/    Same dashboards, import-ready for existing Grafana instances
 ├── configs/              Example configuration files
 ├── docker/               Dockerfiles, Docker Compose, Grafana provisioning
 ├── docs/                 Documentation

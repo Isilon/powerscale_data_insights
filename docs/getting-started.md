@@ -132,7 +132,10 @@ Open [http://localhost:3000](http://localhost:3000) and log in with
    - **URL:** `http://localhost:8086`
    - **Database:** `isi_data_insights`
 
-2. Import the dashboards from `dashboards/influxdb/`:
+2. Import the dashboards from `dashboards/import/influxdb/` (not
+   `dashboards/influxdb/`, which is used for Docker Compose provisioning
+   and doesn't prompt for a datasource — see [Importing
+   Dashboards](dashboards.md#importing-dashboards)):
    - Go to **Dashboards > Import**
    - Upload each JSON file or paste its contents
    - Select your InfluxDB datasource when prompted

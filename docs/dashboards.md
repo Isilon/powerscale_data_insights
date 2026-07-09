@@ -271,11 +271,31 @@ The dashboards use consistent threshold values:
 
 ## Importing Dashboards
 
+There are two copies of each dashboard, for two different situations:
+
+- **`dashboards/influxdb/` and `dashboards/prometheus/`** — used by the
+  bundled Docker Compose stack's automatic provisioning (below). Their
+  datasource references are a fixed literal UID (`DS_INFLUXDB` /
+  `DS_PROMETHEUS`) that matches the datasource the Compose stack
+  provisions with that same UID. Grafana's file-based dashboard
+  provisioner does not prompt for a datasource, so **don't** import these
+  directly into an existing Grafana instance — if you don't happen to have
+  a datasource with that exact UID, panels will silently fall back to
+  whatever datasource is marked default.
+- **`dashboards/import/influxdb/` and `dashboards/import/prometheus/`** —
+  use these when importing into an existing Grafana instance that already
+  has its own datasources configured. They carry an `__inputs` entry so
+  Grafana's Import screen prompts you to pick which datasource to use,
+  instead of guessing.
+
 ### Grafana UI
 
 1. Go to **Dashboards > Import**
-2. Click **Upload dashboard JSON file** or paste the JSON contents
-3. Select your InfluxDB datasource
+2. Click **Upload dashboard JSON file**, using a file from
+   `dashboards/import/influxdb/` (or `dashboards/import/prometheus/` for
+   Prometheus)
+3. On the **Options** screen, use the **InfluxDB** (or **Prometheus**)
+   dropdown to select the datasource this dashboard should use
 4. Click **Import**
 
 ### Grafana Provisioning (Docker Compose)
@@ -283,15 +303,31 @@ The dashboards use consistent threshold values:
 When using the Docker Compose stack, dashboards are provisioned
 automatically via volume mount. The provisioning config at
 `docker/grafana/provisioning/dashboards/dashboards.yml` loads all JSON
-files from `dashboards/influxdb/` into a **PowerScale** folder.
+files from `dashboards/influxdb/` into a **PowerScale** folder, matched
+against a datasource provisioned with the same literal UID
+(`docker/grafana/provisioning/datasources/influxdb.yml`).
 
 ### Grafana API
 
+Use the `/api/dashboards/import` endpoint with the `import`-ready copy so
+the `inputs` mapping selects your datasource:
+
 ```bash
-curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
+curl -X POST http://admin:admin@localhost:3000/api/dashboards/import \
   -H "Content-Type: application/json" \
-  -d "{\"dashboard\": $(cat dashboards/influxdb/cluster_list.json), \"overwrite\": true}"
+  -d "{
+    \"dashboard\": $(cat dashboards/import/influxdb/cluster_list.json),
+    \"overwrite\": true,
+    \"inputs\": [
+      {\"name\": \"DS_INFLUXDB\", \"type\": \"datasource\", \"pluginId\": \"influxdb\", \"value\": \"<your-datasource-uid-or-name>\"}
+    ]
+  }"
 ```
+
+If you already know the target datasource UID and just want to POST the
+dashboard directly (no prompt), you can instead edit
+`dashboards/influxdb/cluster_list.json` and hardcode that UID in place of
+`DS_INFLUXDB` before posting it to `/api/dashboards/db`.
 
 ## Customizing Dashboards
 

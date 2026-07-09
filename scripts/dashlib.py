@@ -28,6 +28,39 @@ PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DS_INFLUXDB = {"type": "influxdb", "uid": "DS_INFLUXDB"}
 DS_PROMETHEUS = {"type": "prometheus", "uid": "DS_PROMETHEUS"}
 
+# The uid above is a literal placeholder, not a Grafana "${VAR}" template —
+# that's intentional. The dashboards/<backend>/*.json files are bind-mounted
+# straight into Grafana's file-based dashboard provisioner for the bundled
+# Docker Compose stack (see docker/*/docker-compose*.yml), and that provider
+# does not perform "${DS_X}" substitution, only exact uid matching against
+# docker/*/grafana-provisioning/datasources/*.yml, which provisions a
+# datasource with this exact literal uid. A second, import-ready copy with
+# proper "${DS_X}" + __inputs metadata is written by write_dashboard() below
+# for customers importing into their own pre-existing Grafana instance.
+DS_INPUTS = {
+    "influxdb": {
+        "name": "DS_INFLUXDB", "label": "InfluxDB",
+        "description": "InfluxDB datasource for PowerScale metrics",
+        "type": "datasource", "pluginId": "influxdb", "pluginName": "InfluxDB",
+    },
+    "prometheus": {
+        "name": "DS_PROMETHEUS", "label": "Prometheus",
+        "description": "Prometheus datasource for PowerScale metrics",
+        "type": "datasource", "pluginId": "prometheus", "pluginName": "Prometheus",
+    },
+}
+
+DS_REQUIRES = {
+    "influxdb": [
+        {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0"},
+        {"type": "datasource", "id": "influxdb", "name": "InfluxDB", "version": "1.0.0"},
+    ],
+    "prometheus": [
+        {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0"},
+        {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"},
+    ],
+}
+
 # ---------------------------------------------------------------------------
 # Common constants
 # ---------------------------------------------------------------------------
@@ -298,8 +331,32 @@ def var_custom(name, label, values, default=None, multi=False):
 # Output utilities
 # ---------------------------------------------------------------------------
 
+def _importable_variant(dashboard, backend):
+    """Return a copy of dashboard for manual import into a pre-existing
+    Grafana instance.
+
+    Wraps the literal DS_INFLUXDB/DS_PROMETHEUS uid as a "${DS_X}" template
+    and adds an __inputs entry, which makes Grafana's Import screen prompt
+    the user to pick a datasource instead of silently falling back to
+    whatever datasource is marked default.
+    """
+    placeholder = DS_INPUTS[backend]["name"]
+    raw = json.dumps(dashboard).replace(
+        f'"{placeholder}"', '"${' + placeholder + '}"')
+    variant = json.loads(raw)
+    variant["__inputs"] = [DS_INPUTS[backend]]
+    variant["__requires"] = DS_REQUIRES[backend]
+    return variant
+
+
 def write_dashboard(dashboard, outpath):
-    """Write dashboard JSON to disk with consistent formatting."""
+    """Write dashboard JSON to disk with consistent formatting.
+
+    Also writes an import-ready variant (see _importable_variant) to
+    dashboards/import/<backend>/, for users importing into an existing
+    Grafana instance rather than using the bundled Docker Compose
+    provisioning.
+    """
     os.makedirs(os.path.dirname(outpath), exist_ok=True)
     with open(outpath, 'w') as f:
         json.dump(dashboard, f, indent=2)
@@ -307,7 +364,28 @@ def write_dashboard(dashboard, outpath):
     n = len(dashboard.get("panels", []))
     print(f"  Written: {os.path.relpath(outpath, PROJ_ROOT)} ({n} panels)")
 
+    backend = os.path.basename(os.path.dirname(outpath))
+    if backend not in DS_INPUTS:
+        return
+    variant = _importable_variant(dashboard, backend)
+    variant_path = import_outpath(backend, os.path.basename(outpath))
+    os.makedirs(os.path.dirname(variant_path), exist_ok=True)
+    with open(variant_path, 'w') as f:
+        json.dump(variant, f, indent=2)
+        f.write('\n')
+    print(f"  Written: {os.path.relpath(variant_path, PROJ_ROOT)} (import-ready)")
+
 
 def outpath(backend, filename):
     """Return the standard output path for a dashboard JSON file."""
     return os.path.join(PROJ_ROOT, "dashboards", backend, filename)
+
+
+def import_outpath(backend, filename):
+    """Return the output path for the import-ready dashboard JSON file.
+
+    Deliberately outside dashboards/<backend>/ so it is never picked up by
+    the Docker Compose stack's file-based dashboard provisioner, which
+    bind-mounts dashboards/<backend>/ directly and recurses into it.
+    """
+    return os.path.join(PROJ_ROOT, "dashboards", "import", backend, filename)

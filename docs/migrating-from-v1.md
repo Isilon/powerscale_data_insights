@@ -154,7 +154,10 @@ and historical data will continue to appear in dashboards alongside new data.
 
 The v2 dashboards use modern Grafana panel types (timeseries instead of
 graph, stat instead of singlestat) but query the same underlying data. Import
-them from `dashboards/influxdb/` — they will work with both old and new data.
+them from `dashboards/import/influxdb/` (not `dashboards/influxdb/`, which
+is used for Docker Compose provisioning and won't prompt you to pick a
+datasource — see [Importing Dashboards](dashboards.md#importing-dashboards))
+— they will work with both old and new data.
 
 You can keep the v1 dashboards alongside the v2 ones during the transition.
 

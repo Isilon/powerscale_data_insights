@@ -121,8 +121,11 @@ alongside your existing dashboards and switch over at your own pace.
 
 In Grafana:
 1. Go to **Dashboards → Import**
-2. Upload each JSON file from `dashboards/influxdb/` (or `dashboards/prometheus/`
-   if you use Prometheus)
+2. Upload each JSON file from `dashboards/import/influxdb/` (or
+   `dashboards/import/prometheus/` if you use Prometheus) — use the
+   `import/` copies, not the plain `dashboards/influxdb/` ones, since only
+   the `import/` copies carry the metadata that makes Grafana prompt for a
+   datasource (see [Importing Dashboards](dashboards.md#importing-dashboards))
 3. Select your datasource when prompted
 
 | New Dashboard | Replaces / Description |
