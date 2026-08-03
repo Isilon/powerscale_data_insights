@@ -66,7 +66,7 @@ dashgen [flags]
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `version` | string | *required* | Config format version (e.g., `"v0.39"`) |
+| `version` | string | *required* | Config format version (e.g., `"v0.40"`) |
 | `stats_processor` | string | `"influxdb"` | Backend: `"influxdb"`, `"influxdbv2"`, `"prometheus"`, `"discard"` |
 | `stats_processor_max_retries` | int | `8` | Max retries for backend writes; `0` = retry forever |
 | `stats_processor_retry_interval` | int | `5` | Initial retry interval in seconds (exponential backoff) |
@@ -75,7 +75,45 @@ dashgen [flags]
 | `preserve_case` | bool | `false` | Preserve cluster name casing; when false, names are lowercased |
 | `include_degraded` | bool | `false` | Add a `degraded` tag to metrics |
 | `fetch_by_statgroup` | bool | `false` | Fetch one stat group per request instead of batching by interval |
+| `stat_timeout` | int | `0` | Value (seconds) sent as the OneFS `timeout` query parameter, bounding how long the cluster waits for results from remote nodes before returning a per-stat timeout (`errorcode=6`); `0` omits it and uses the cluster default |
+| `stat_retries` | int | `2` | Extra attempts, within a single collection cycle, to re-query only the stat keys that returned transient per-stat errors (timeout/stale/etc.); `0` disables per-stat retry |
+| `stat_retry_interval` | int | `2` | Initial delay in seconds between per-stat transient retries within a cycle (exponential backoff) |
 | `active_stat_groups` | array | *required* | List of stat group names to collect |
+
+#### Transient per-stat failures
+
+The OneFS `statistics/current` endpoint can return successful results and
+per-stat errors in the same response. A failure can also affect only one node
+for a stat key. When an error is transient, `gostats` preserves every successful
+result and re-queries only the affected stat keys. A recovered `(stat key,
+device ID)` result replaces its failed value; successful values are never
+overwritten by a retry failure.
+
+`stat_retries` counts additional attempts within the current collection cycle.
+The delay starts at `stat_retry_interval` and doubles for each attempt. With the
+defaults, the collector waits 2 seconds and then 4 seconds, for up to 6 seconds
+of backoff plus the request time. Transport-level PAPI retries remain controlled
+separately by `max_retries`.
+
+Increasing `stat_timeout` gives OneFS more time to gather remote-node results,
+but can keep each request active longer. Increasing the retry count or interval
+can extend a collection cycle, and retries add PAPI traffic. Tune these settings
+conservatively on busy or large clusters.
+
+These options are additive and existing configuration files remain valid. To
+restore the previous behavior, disable targeted retries and use strict
+Prometheus expiry:
+
+```toml
+[global]
+stat_retries = 0
+
+[prometheus]
+expiry_multiplier = 1
+```
+
+The default `stat_timeout = 0` already preserves the previous OneFS timeout
+behavior by omitting the query parameter.
 
 ### [logging]
 
@@ -127,6 +165,7 @@ Used when `stats_processor = "prometheus"`.
 | `tls_cert` | string | `""` | Path to TLS certificate |
 | `tls_key` | string | `""` | Path to TLS private key |
 | `instance_label_name` | string | | Additional label for the cluster name (avoids conflicts with Prometheus external labels) |
+| `expiry_multiplier` | float | `2` | Multiplies each sample's expiry (based on the stat's update interval) so a single missed/timed-out collection does not immediately expire the series and create a scrape gap; clamped to `>= 1` |
 
 ### [prom_http_sd]
 
@@ -218,7 +257,7 @@ A minimal gostats config to get started:
 
 ```toml
 [global]
-version = "v0.39"
+version = "v0.40"
 stats_processor = "influxdb"
 active_stat_groups = ["cluster_health_stats"]
 

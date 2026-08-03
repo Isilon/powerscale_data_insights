@@ -16,6 +16,13 @@ modernized Grafana dashboards.
 | **goppstats** | Collects OneFS Partitioned Performance data via PAPI and writes to InfluxDB v1/v2 or Prometheus |
 | **dashgen** | Generates Grafana dashboards for Partitioned Performance datasets by querying the PAPI at runtime |
 
+`gostats` is resilient to transient per-stat and per-node OneFS failures: it
+retries only affected stat keys while preserving successful results. The
+Prometheus backend can also retain the last sample across a missed collection
+to avoid unnecessary scrape gaps. See
+[Transient per-stat failures](docs/configuration.md#transient-per-stat-failures)
+for behavior, defaults, and tuning guidance.
+
 ## Architecture
 
 ```

@@ -58,7 +58,7 @@ type Cluster struct {
 	VerifySSL    bool
 	OSVersion    string
 	ClusterName  string
-	UserAgent    string // set by each collector, e.g. "gostats/0.39"
+	UserAgent    string // set by each collector, e.g. "gostats/0.40"
 	baseURL      string
 	client       *http.Client
 	csrfToken    string

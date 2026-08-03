@@ -4,7 +4,7 @@
 # This field ties the config file syntax/format back to the collector version.
 # This allows the collector to flag breaking changes where the config file needs to be updated.
 # string optionally starting with "v"/"V" e.g., "v0.10", or "0.10"
-version = "v0.39"
+version = "v0.40"
 
 # Pluggable back end support
 # Supported back ends are "influxdb", "influxdbv2", "prometheus" and "discard"
@@ -46,6 +46,14 @@ min_update_interval_override = 5
 # reducing the size of each request at the cost of slightly more API calls.
 # Defaults to false.
 # fetch_by_statgroup = true
+
+# Retry only stat keys that return transient per-stat/per-node errors. The
+# default is 2 additional attempts with exponential backoff starting at 2
+# seconds. stat_timeout = 0 omits the OneFS timeout parameter and retains the
+# cluster default. Set stat_retries = 0 to disable targeted retries.
+# stat_timeout = 10
+# stat_retries = 2
+# stat_retry_interval = 2
 
 # Specifies the active list of stat groups to query, each stat group name
 # specified here should have a corresponding section in the config file.
@@ -135,6 +143,10 @@ authenticated = false
 # that value is stamped under an additional label name.
 #
 # Example: instance_label_name = "isilon_cluster"
+#
+# Keep samples for two stat update intervals so one missed collection does not
+# immediately create a scrape gap. Set to 1 for the previous strict expiry.
+# expiry_multiplier = 2
 
 # discard back end currently has no configurable options and hence no config stanza
 

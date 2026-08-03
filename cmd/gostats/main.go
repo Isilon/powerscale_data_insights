@@ -23,7 +23,7 @@ import (
 )
 
 // Version is the released program version
-const Version = "0.39"
+const Version = "0.40"
 const userAgent = "gostats/" + Version
 
 // Config file plugin names
@@ -356,6 +356,7 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 			MaxRetries:   gc.MaxRetries,
 			PreserveCase: preserveCase,
 		},
+		statTimeout: gc.StatTimeout,
 	}
 	if err = c.Connect(ctx); err != nil {
 		if !errors.Is(err, context.Canceled) {
@@ -458,7 +459,7 @@ func statsloop(ctx context.Context, conf *tomlConfig, ci int, sg map[string]stat
 			const maxRetryTime = time.Second * 1280
 			retryTime := time.Second * 10
 			for {
-				sr, err = c.GetStats(ctx, stats)
+				sr, err = c.GetStatsWithRetry(ctx, stats, gc.StatRetries, gc.StatRetryIntvl)
 				if err == nil {
 					break
 				}

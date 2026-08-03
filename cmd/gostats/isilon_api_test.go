@@ -65,6 +65,7 @@ func TestParseStatResult_InvalidJSON(t *testing.T) {
 		t.Fatalf("expected error for invalid JSON, got none")
 	}
 }
+
 // Tests for parseStatInfo
 
 // buildStatInfoJSON constructs a minimal valid stat info JSON response
@@ -159,5 +160,96 @@ func TestParseStatInfo_MissingKeysField(t *testing.T) {
 	_, err := parseStatInfo(data)
 	if err == nil {
 		t.Fatalf("expected error for missing 'keys' field, got none")
+	}
+}
+
+// Tests for the transient per-stat retry helpers
+
+func TestIsTransientStatError(t *testing.T) {
+	transient := []int{StatErrorStale, StatErrorConnTimeout, StatErrorTimeout, StatErrorNoHistory, StatErrorSystem}
+	for _, code := range transient {
+		if !isTransientStatError(code) {
+			t.Errorf("expected code %d to be transient", code)
+		}
+	}
+	permanent := []int{StatErrorNone, StatErrorNotPresent, StatErrorNotImplemented, StatErrorDegraded, StatErrorNotConfigured, StatErrorNoData}
+	for _, code := range permanent {
+		if isTransientStatError(code) {
+			t.Errorf("expected code %d to be non-transient", code)
+		}
+	}
+}
+
+func TestTransientFailedKeys(t *testing.T) {
+	results := []StatResult{
+		{Key: "a", Devid: 1, ErrorCode: StatErrorNone},
+		{Key: "a", Devid: 2, ErrorCode: StatErrorTimeout}, // key a failed on one node
+		{Key: "b", Devid: 1, ErrorCode: StatErrorNone},
+		{Key: "c", Devid: 1, ErrorCode: StatErrorStale},
+		{Key: "d", Devid: 1, ErrorCode: StatErrorNotPresent}, // permanent, not retried
+	}
+	failed := transientFailedKeys(results)
+	if !failed.Contains("a") || !failed.Contains("c") {
+		t.Errorf("expected keys a and c to be flagged, got %v", failed.ToSlice())
+	}
+	if failed.Contains("b") || failed.Contains("d") {
+		t.Errorf("did not expect keys b or d to be flagged, got %v", failed.ToSlice())
+	}
+}
+
+func TestMergeRetriedResults_RecoveryAndPersistentFailure(t *testing.T) {
+	// Initial: key a failed on node 2, key c failed on node 1.
+	results := []StatResult{
+		{Key: "a", Devid: 1, ErrorCode: StatErrorNone, Value: 1.0},
+		{Key: "a", Devid: 2, ErrorCode: StatErrorTimeout},
+		{Key: "c", Devid: 1, ErrorCode: StatErrorTimeout},
+	}
+	// Retry: a/2 recovers, c/1 still times out.
+	retried := []StatResult{
+		{Key: "a", Devid: 2, ErrorCode: StatErrorNone, Value: 2.0},
+		{Key: "c", Devid: 1, ErrorCode: StatErrorTimeout},
+	}
+	merged, failed := mergeRetriedResults(results, retried)
+
+	// a/2 should now carry the recovered value and no error.
+	var a2 *StatResult
+	for i := range merged {
+		if merged[i].Key == "a" && merged[i].Devid == 2 {
+			a2 = &merged[i]
+		}
+	}
+	if a2 == nil || a2.ErrorCode != StatErrorNone || a2.Value != 2.0 {
+		t.Errorf("expected a/2 to recover to value 2.0 with no error, got %+v", a2)
+	}
+	// a/1 good data must be untouched.
+	for _, r := range merged {
+		if r.Key == "a" && r.Devid == 1 && r.Value != 1.0 {
+			t.Errorf("good data a/1 was clobbered: %+v", r)
+		}
+	}
+	// c still failing.
+	if !failed.Contains("c") {
+		t.Errorf("expected c to still be failing, got %v", failed.ToSlice())
+	}
+	if failed.Contains("a") {
+		t.Errorf("expected a to have recovered, got %v", failed.ToSlice())
+	}
+}
+
+func TestMergeRetriedResults_NoClobberGoodData(t *testing.T) {
+	// A good value should never be overwritten even if a retry returns a worse
+	// (transient) result for the same (key, devid).
+	results := []StatResult{
+		{Key: "a", Devid: 1, ErrorCode: StatErrorNone, Value: 42.0},
+	}
+	retried := []StatResult{
+		{Key: "a", Devid: 1, ErrorCode: StatErrorTimeout},
+	}
+	merged, failed := mergeRetriedResults(results, retried)
+	if len(merged) != 1 || merged[0].ErrorCode != StatErrorNone || merged[0].Value != 42.0 {
+		t.Errorf("good data must not be clobbered, got %+v", merged)
+	}
+	if failed.Cardinality() != 0 {
+		t.Errorf("expected no failed keys, got %v", failed.ToSlice())
 	}
 }

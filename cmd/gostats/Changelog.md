@@ -1,6 +1,16 @@
 <!-- markdownlint-disable MD024 -->
 # Changelog
 
+## 0.40 Fri Jul 31 2026
+
+### New Features
+
+- Resilience improvements for transient per-stat timeouts (`errorcode=6`)
+  - The OneFS `statistics/current` endpoint returns a per-stat/per-node error code inside an otherwise-successful response; code 6 (`StatErrorTimeout`) means the cluster could not gather that stat from a node within its deadline. Previously such a stat was silently skipped for the cycle, and with Prometheus the exported series would expire immediately, producing a scrape gap. Three related options address this:
+    - `stat_timeout` (global, default `0`): when > 0, sent as the OneFS `timeout` query parameter so the cluster waits longer for results from remote nodes before returning code 6. `0` uses the cluster default (unchanged behavior).
+    - `stat_retries` (global, default `2`) and `stat_retry_interval` (global, default `2s`): within a single collection cycle, only the stat keys that returned a transient error are re-queried, with exponential backoff. Recovered values replace the failed ones; good data is never overwritten. Set `stat_retries = 0` to restore the previous no-retry behavior.
+    - `expiry_multiplier` (`[prometheus]`, default `2`): scales each Prometheus sample's expiry off the stat's update interval so a single missed collection no longer creates an immediate scrape gap. Clamped to `>= 1`; set to `1` to restore the previous behavior.
+
 ## 0.39 Mon Mar 16 2026
 
 ### Bug Fixes

@@ -10,11 +10,33 @@ import (
 
 // Default configuration values shared by both collectors.
 const (
-	DefaultMinUpdateInterval     = 30
-	DefaultMaxRetries            = 8
-	DefaultProcessorMaxRetries   = 8
+	// DefaultMinUpdateInterval is the minimum collection interval in seconds.
+	DefaultMinUpdateInterval = 30
+	// DefaultMaxRetries is the default limit for PAPI transport retries.
+	DefaultMaxRetries = 8
+	// DefaultProcessorMaxRetries is the default backend-write retry limit.
+	DefaultProcessorMaxRetries = 8
+	// DefaultProcessorRetryInterval is the initial backend retry delay in seconds.
 	DefaultProcessorRetryInterval = 5
-	DefaultPreserveCase          = false
+	// DefaultPreserveCase controls whether cluster name casing is retained.
+	DefaultPreserveCase = false
+	// DefaultStatTimeout is the value (in seconds) passed as the "timeout"
+	// parameter on the OneFS statistics/current request, bounding how long the
+	// cluster waits for results from remote nodes before returning a per-stat
+	// timeout error. 0 means the parameter is omitted and the cluster default
+	// is used.
+	DefaultStatTimeout = 0
+	// DefaultStatRetries is the number of extra times a stat query is retried
+	// within a single collection cycle when the cluster returns transient
+	// (timeout/stale) per-stat errors for some keys.
+	DefaultStatRetries = 2
+	// DefaultStatRetryInterval is the initial delay (in seconds) between
+	// per-stat transient-error retries within a collection cycle.
+	DefaultStatRetryInterval = 2
+	// DefaultPromExpiryMultiplier scales the Prometheus sample expiry off each
+	// stat's update interval so a single missed collection does not immediately
+	// create a scrape gap. Must be >= 1.
+	DefaultPromExpiryMultiplier = 2
 )
 
 // InfluxDBConfig defines the InfluxDB v1 settings in the config file.
@@ -42,12 +64,21 @@ type InfluxDBv2Config struct {
 
 // PrometheusConfig defines the Prometheus settings in the config file.
 type PrometheusConfig struct {
-	Authenticated     bool    `toml:"authenticated"`
-	Username          string  `toml:"username"`
-	Password          string  `toml:"password"`
-	TLSCert           string  `toml:"tls_cert"`
-	TLSKey            string  `toml:"tls_key"`
+	// Authenticated enables HTTP basic authentication.
+	Authenticated bool `toml:"authenticated"`
+	// Username and Password are the HTTP basic-auth credentials.
+	Username string `toml:"username"`
+	Password string `toml:"password"`
+	// TLSCert and TLSKey configure HTTPS when both are set.
+	TLSCert string `toml:"tls_cert"`
+	TLSKey  string `toml:"tls_key"`
+	// InstanceLabelName optionally duplicates the OneFS cluster name under a custom label.
 	InstanceLabelName *string `toml:"instance_label_name"`
+	// ExpiryMultiplier scales sample expiry off each stat's update interval so a
+	// single missed/timed-out collection does not immediately expire the series
+	// and create a scrape gap. A pointer so we can distinguish "unset" from an
+	// explicit 0 and apply the default; values < 1 are clamped to 1.
+	ExpiryMultiplier *float64 `toml:"expiry_multiplier"`
 }
 
 // PromHTTPSDConfig defines the Prometheus HTTP Service Discovery settings.

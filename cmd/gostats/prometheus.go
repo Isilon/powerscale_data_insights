@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"sort"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/isilon/powerscale_data_insights/internal/backend"
+	pkgconfig "github.com/isilon/powerscale_data_insights/internal/config"
 	"github.com/isilon/powerscale_data_insights/internal/platform"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -22,25 +24,52 @@ import (
 
 // PrometheusClient holds the metadata for the required networking (http) functionality
 type PrometheusClient struct {
-	ListenPort    uint64
-	TLSCert       string `toml:"tls_cert"`
-	TLSKey        string `toml:"tls_key"`
+	// ListenPort is the TCP port serving Prometheus metrics.
+	ListenPort uint64
+	// TLSCert and TLSKey configure HTTPS when both are set.
+	TLSCert string `toml:"tls_cert"`
+	TLSKey  string `toml:"tls_key"`
+	// BasicUsername and BasicPassword enable HTTP basic authentication.
 	BasicUsername string `toml:"basic_username"`
 	BasicPassword string `toml:"basic_password"`
 
-	server   *http.Server
+	// server is retained for graceful shutdown.
+	server *http.Server
+	// registry contains this collector's metrics.
 	registry *prometheus.Registry
 }
 
 // PrometheusSink defines the data to allow us talk to an Prometheus database
 type PrometheusSink struct {
-	cluster           string
+	// cluster is the OneFS cluster name attached to exported samples.
+	cluster string
+	// instanceLabelName optionally duplicates the cluster name under a custom label.
 	instanceLabelName string
-	client            PrometheusClient
-	metricMap         map[string]*statDetail
+	// client owns the Prometheus HTTP endpoint.
+	client PrometheusClient
+	// metricMap contains API metadata for each collected stat.
+	metricMap map[string]*statDetail
+	// expiryMultiplier scales sample expiry off each stat's update interval so a
+	// single missed/timed-out collection does not immediately create a scrape
+	// gap. Always >= 1.
+	expiryMultiplier float64
 
+	// Mutex protects fam during writes, expiry, and collection.
 	sync.Mutex
+	// fam stores the current Prometheus metric families.
 	fam map[string]*MetricFamily
+}
+
+// prometheusExpiryMultiplier returns the configured sample-expiry multiplier.
+// Invalid or sub-minimum explicit values select the documented minimum of one.
+func prometheusExpiryMultiplier(configured *float64) float64 {
+	if configured == nil {
+		return pkgconfig.DefaultPromExpiryMultiplier
+	}
+	if math.IsNaN(*configured) || math.IsInf(*configured, 0) || *configured < 1 {
+		return 1
+	}
+	return *configured
 }
 
 const namespace = "isilon"
@@ -255,6 +284,9 @@ func (s *PrometheusSink) Init(ctx context.Context, clusterName string, config *t
 	if config.Prometheus.InstanceLabelName != nil {
 		s.instanceLabelName = *config.Prometheus.InstanceLabelName
 	}
+	// Sample expiry grace: a single missed collection should not immediately
+	// expire the series. Default applied when unset; clamped to >= 1.
+	s.expiryMultiplier = prometheusExpiryMultiplier(config.Prometheus.ExpiryMultiplier)
 	promconf := config.Prometheus
 	port := config.Clusters[ci].PrometheusPort
 	if port == nil {
@@ -446,9 +478,12 @@ func (s *PrometheusSink) WritePoints(_ context.Context, points []backend.Point) 
 		// expire the stats based off their update interval
 		expiration := time.Duration(promstat.updateIntvl) * time.Second
 		// Clamp value: cf calcBuckets() in main.go
-		if expiration < 5 {
-			expiration = time.Duration(5 * time.Second)
+		if expiration < 5*time.Second {
+			expiration = 5 * time.Second
 		}
+		// Apply the grace multiplier so a single missed/timed-out collection
+		// does not immediately expire the series and create a scrape gap.
+		expiration = time.Duration(float64(expiration) * s.expiryMultiplier)
 		for i, fields := range point.Fields {
 			sampleID := CreateSampleID(point.Tags[i])
 			labels := make(prometheus.Labels)

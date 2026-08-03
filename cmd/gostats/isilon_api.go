@@ -7,16 +7,25 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
+	"strconv"
+	"time"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/isilon/powerscale_data_insights/internal/api"
 	"github.com/isilon/powerscale_data_insights/internal/logging"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 // Cluster embeds the shared api.Cluster and adds gostats-specific state.
 type Cluster struct {
+	// Cluster provides the shared OneFS API client.
 	*api.Cluster
+	// badStats tracks permanently unavailable stat keys so they are only logged once.
 	badStats mapset.Set[string]
+	// statTimeout, if > 0, is sent as the "timeout" parameter on the
+	// statistics/current request, bounding how long the cluster waits for
+	// results from remote nodes before returning a per-stat timeout.
+	statTimeout int
 }
 
 // Connect delegates to the embedded api.Cluster.Connect and then initialises
@@ -79,6 +88,19 @@ const (
 	StatErrorNotConfigured
 	StatErrorNoData
 )
+
+// isTransientStatError reports whether a per-stat error code represents a
+// transient condition that is worth retrying within the same collection cycle
+// (as opposed to a permanent condition like "not present"). These are the same
+// codes that WriteStats skips-but-does-not-blacklist.
+func isTransientStatError(code int) bool {
+	switch code {
+	case StatErrorStale, StatErrorConnTimeout, StatErrorTimeout, StatErrorNoHistory, StatErrorSystem:
+		return true
+	default:
+		return false
+	}
+}
 
 // SummaryStatsProtocol stores the return from the /3/statistics/summary/statistics endpoint
 // which returns an array of protocol summary stats or an array of errors
@@ -172,22 +194,22 @@ type SummaryStatsDrive struct {
 
 // SummaryStatsDriveItem describes a single drive summary stat entry
 type SummaryStatsDriveItem struct {
-	AccessLatency   float64 `json:"access_latency"`
-	AccessSlow      float64 `json:"access_slow"`
-	Busy            float64 `json:"busy"`
-	BytesIn         float64 `json:"bytes_in"`
-	BytesOut        float64 `json:"bytes_out"`
-	DriveID         string  `json:"drive_id"`
-	IoschedLatency  float64 `json:"iosched_latency"`
-	IoschedQueue    float64 `json:"iosched_queue"`
-	Time            int64   `json:"time"`
-	Type            string  `json:"type"`
+	AccessLatency    float64 `json:"access_latency"`
+	AccessSlow       float64 `json:"access_slow"`
+	Busy             float64 `json:"busy"`
+	BytesIn          float64 `json:"bytes_in"`
+	BytesOut         float64 `json:"bytes_out"`
+	DriveID          string  `json:"drive_id"`
+	IoschedLatency   float64 `json:"iosched_latency"`
+	IoschedQueue     float64 `json:"iosched_queue"`
+	Time             int64   `json:"time"`
+	Type             string  `json:"type"`
 	UsedBytesPercent float64 `json:"used_bytes_percent"`
-	UsedInodes      float64 `json:"used_inodes"`
-	XferSizeIn      float64 `json:"xfer_size_in"`
-	XferSizeOut     float64 `json:"xfer_size_out"`
-	XfersIn         float64 `json:"xfers_in"`
-	XfersOut        float64 `json:"xfers_out"`
+	UsedInodes       float64 `json:"used_inodes"`
+	XferSizeIn       float64 `json:"xfer_size_in"`
+	XferSizeOut      float64 `json:"xfer_size_out"`
+	XfersIn          float64 `json:"xfers_in"`
+	XfersOut         float64 `json:"xfers_out"`
 }
 
 // UnmarshalSummaryStatsDrive unmarshals the JSON return from the summary stats drive endpoint
@@ -310,6 +332,10 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 	var results []StatResult
 
 	basePath := statsPath + "?degraded=true&devid=all&show_nodes=true"
+	if c.statTimeout > 0 {
+		// bound how long the cluster waits for results from remote nodes
+		basePath += "&timeout=" + strconv.Itoa(c.statTimeout)
+	}
 	log.Info("fetching stats", slog.String("cluster", c.String()), slog.Int("count", len(stats)))
 	// max space available for &key=... args (subtract basePath length and some slop)
 	maxKeyLen := api.MaxAPIPathLen - (len(basePath) + 100)
@@ -367,6 +393,118 @@ func (c *Cluster) GetStats(ctx context.Context, stats []string) ([]StatResult, e
 	log.Log(ctx, logging.LevelTrace, "parsed stats results", slog.String("cluster", c.String()), "results", r)
 	results = append(results, r...)
 
+	return results, nil
+}
+
+// statResultKey identifies a single stat result by its key and device id.
+// Since requests use devid=all, one stat key can return one result per node,
+// and each of those results carries its own error code.
+type statResultKey struct {
+	// key is the OneFS statistic key.
+	key string
+	// devid identifies the node result; cluster-scoped results use zero.
+	devid int
+}
+
+// transientFailedKeys returns the set of stat keys that have at least one
+// result carrying a transient per-stat error.
+func transientFailedKeys(results []StatResult) mapset.Set[string] {
+	failed := mapset.NewSet[string]()
+	for _, r := range results {
+		if isTransientStatError(r.ErrorCode) {
+			failed.Add(r.Key)
+		}
+	}
+	return failed
+}
+
+// mergeRetriedResults merges the results of a retry query back into the running
+// result set. A retried result overwrites an existing entry only when that
+// entry was itself a transient failure (so good data is never clobbered);
+// results for previously-unseen (key, devid) pairs are appended. It returns the
+// updated result slice and the set of keys that still have a transient error.
+func mergeRetriedResults(results []StatResult, retried []StatResult) ([]StatResult, mapset.Set[string]) {
+	index := make(map[statResultKey]int, len(results))
+	for i, r := range results {
+		index[statResultKey{key: r.Key, devid: r.Devid}] = i
+	}
+	for _, r := range retried {
+		rk := statResultKey{key: r.Key, devid: r.Devid}
+		if idx, ok := index[rk]; ok {
+			if isTransientStatError(results[idx].ErrorCode) {
+				results[idx] = r
+			}
+		} else {
+			index[rk] = len(results)
+			results = append(results, r)
+		}
+	}
+	return results, transientFailedKeys(results)
+}
+
+// GetStatsWithRetry behaves like GetStats but, when some results come back with
+// a transient per-stat error (timeout/stale/etc.), it re-queries just the
+// affected stat keys up to maxRetries times, with exponential backoff starting
+// at retryIntvl. Results that recover replace the earlier failed values; those
+// that never recover are returned with their (last) error so the caller can log
+// and skip them as before. This avoids dropping an exported series for a single
+// transient cluster-side gather timeout.
+//
+// If maxRetries <= 0 it is equivalent to GetStats.
+func (c *Cluster) GetStatsWithRetry(ctx context.Context, stats []string, maxRetries, retryIntvl int) ([]StatResult, error) {
+	results, err := c.GetStats(ctx, stats)
+	if err != nil {
+		return nil, err
+	}
+	if maxRetries <= 0 {
+		return results, nil
+	}
+
+	failedKeys := transientFailedKeys(results)
+	if failedKeys.Cardinality() == 0 {
+		return results, nil
+	}
+
+	if retryIntvl < 1 {
+		retryIntvl = 1
+	}
+	const maxRetryBackoff = 1280 * time.Second
+	if time.Duration(retryIntvl) > maxRetryBackoff/time.Second {
+		retryIntvl = int(maxRetryBackoff / time.Second)
+	}
+	backoff := time.Duration(retryIntvl) * time.Second
+	for attempt := 1; attempt <= maxRetries && failedKeys.Cardinality() > 0; attempt++ {
+		timer := time.NewTimer(backoff)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			timer.Stop()
+			return results, ctx.Err()
+		}
+		retryStats := failedKeys.ToSlice()
+		sort.Strings(retryStats)
+		log.Log(ctx, logging.LevelNotice, "retrying stats with transient (non-transport) errors, e.g. server-side timeout",
+			slog.String("cluster", c.String()), slog.Int("attempt", attempt),
+			slog.Int("count", len(retryStats)))
+		retried, rerr := c.GetStats(ctx, retryStats)
+		if rerr != nil {
+			if errors.Is(rerr, context.Canceled) || errors.Is(rerr, context.DeadlineExceeded) {
+				return results, rerr
+			}
+			// Preserve the good results and leave failedKeys unchanged so a
+			// transport failure does not prevent the remaining targeted attempts.
+			log.Warn("retry of transient stats failed, preserving earlier results",
+				slog.String("cluster", c.String()), slog.String("error", rerr.Error()))
+		} else {
+			results, failedKeys = mergeRetriedResults(results, retried)
+		}
+		if backoff < maxRetryBackoff {
+			backoff *= 2
+			if backoff > maxRetryBackoff {
+				backoff = maxRetryBackoff
+			}
+		}
+	}
 	return results, nil
 }
 
