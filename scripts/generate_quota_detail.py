@@ -20,7 +20,11 @@ def generate(backend):
     tags = ["powerscale", "goquotas"] + ([] if influx else ["prometheus"])
 
     if influx:
-        where = '"cluster" =~ /^$cluster$/ AND "path" =~ /^$path$/ AND "quota_type" =~ /^$quota_type$/ AND "include_snapshots" =~ /^$include_snapshots$/ AND $timeFilter'
+        # Path is a single-select value and normally contains '/'. Using it as
+        # an unescaped InfluxQL regex breaks the regex delimiter (for example,
+        # /^/ifs/data$/). Grafana's singlequote formatter safely produces an
+        # InfluxQL string literal for each dependent variable.
+        where = '"cluster" =~ /^$cluster$/ AND "path" = ${path:singlequote} AND "quota_type" = ${quota_type:singlequote} AND "include_snapshots" = ${include_snapshots:singlequote} AND $timeFilter'
         usage_targets = [
             influx_target(ds, "A", f'SELECT mean("usage_bytes") FROM "quota" WHERE {where} GROUP BY time($__interval), "quota_id" fill(null)', "Usage"),
             influx_target(ds, "B", f'SELECT mean("advisory_bytes") FROM "quota" WHERE {where} GROUP BY time($__interval), "quota_id" fill(null)', "Advisory"),
@@ -36,8 +40,8 @@ def generate(backend):
         variables = [
             var_query(ds, "cluster", "Cluster", 'SHOW TAG VALUES FROM "quota" WITH KEY = "cluster"', sort=1),
             var_query(ds, "path", "Quota Path", 'SHOW TAG VALUES FROM "quota" WITH KEY = "path" WHERE "cluster" =~ /^$cluster$/', sort=1),
-            var_query(ds, "quota_type", "Quota Type", 'SHOW TAG VALUES FROM "quota" WITH KEY = "quota_type" WHERE "cluster" =~ /^$cluster$/ AND "path" =~ /^$path$/', sort=1),
-            var_query(ds, "include_snapshots", "Includes Snapshots", 'SHOW TAG VALUES FROM "quota" WITH KEY = "include_snapshots" WHERE "cluster" =~ /^$cluster$/ AND "path" =~ /^$path$/ AND "quota_type" =~ /^$quota_type$/', sort=1),
+            var_query(ds, "quota_type", "Quota Type", 'SHOW TAG VALUES FROM "quota" WITH KEY = "quota_type" WHERE "cluster" =~ /^$cluster$/ AND "path" = ${path:singlequote}', sort=1),
+            var_query(ds, "include_snapshots", "Includes Snapshots", 'SHOW TAG VALUES FROM "quota" WITH KEY = "include_snapshots" WHERE "cluster" =~ /^$cluster$/ AND "path" = ${path:singlequote} AND "quota_type" = ${quota_type:singlequote}', sort=1),
         ]
     else:
         labels = 'cluster=~"$cluster",path=~"$path",quota_type=~"$quota_type",include_snapshots=~"$include_snapshots"'

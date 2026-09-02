@@ -77,8 +77,8 @@
           "type": "influxdb",
           "uid": "DS_INFLUXDB"
         },
-        "query": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"quota_type\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/",
-        "definition": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"quota_type\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/",
+        "query": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"quota_type\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote}",
+        "definition": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"quota_type\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote}",
         "sort": 1,
         "multi": false,
         "includeAll": false,
@@ -94,8 +94,8 @@
           "type": "influxdb",
           "uid": "DS_INFLUXDB"
         },
-        "query": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"include_snapshots\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/",
-        "definition": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"include_snapshots\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/",
+        "query": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"include_snapshots\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote}",
+        "definition": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"include_snapshots\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote}",
         "sort": 1,
         "multi": false,
         "includeAll": false,
@@ -164,7 +164,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"usage_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"usage_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Usage"
         },
@@ -175,7 +175,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"advisory_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"advisory_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Advisory"
         },
@@ -186,7 +186,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"soft_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"soft_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Soft"
         },
@@ -197,7 +197,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"hard_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"hard_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Hard"
         }
@@ -267,7 +267,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"usage_applogical_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"usage_applogical_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Application logical"
         },
@@ -278,7 +278,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"usage_fslogical_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"usage_fslogical_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Filesystem logical"
         },
@@ -289,7 +289,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"usage_physical_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"usage_physical_bytes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Physical"
         }
@@ -359,7 +359,7 @@
             "uid": "DS_INFLUXDB"
           },
           "rawQuery": true,
-          "query": "SELECT mean(\"usage_inodes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" =~ /^$path$/ AND \"quota_type\" =~ /^$quota_type$/ AND \"include_snapshots\" =~ /^$include_snapshots$/ AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
+          "query": "SELECT mean(\"usage_inodes\") FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND \"path\" = ${path:singlequote} AND \"quota_type\" = ${quota_type:singlequote} AND \"include_snapshots\" = ${include_snapshots:singlequote} AND $timeFilter GROUP BY time($__interval), \"quota_id\" fill(null)",
           "resultFormat": "time_series",
           "alias": "Inodes"
         }
