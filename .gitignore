@@ -29,8 +29,10 @@ idic.toml
 goppstats.toml
 docker/gostats.toml
 docker/goppstats.toml
+docker/goquotas.toml
 docker/gostats.prometheus.toml
 docker/goppstats.prometheus.toml
+docker/goquotas.prometheus.toml
 
 # Test output
 test-dash.json
