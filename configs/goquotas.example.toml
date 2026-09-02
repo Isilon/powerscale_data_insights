@@ -1,0 +1,76 @@
+[global]
+# goquotas configuration format version.
+version = "v0.1"
+
+# Supported: influxdb, influxdbv2, prometheus, discard.
+stats_processor = "influxdb"
+
+# Poll live quota state once per hour. Any positive Go duration is accepted.
+collection_interval = "1h"
+
+# Directory quota families are the safe default. Add user/default-user or
+# group/default-group explicitly if identity quota collection is required.
+quota_types = ["directory", "default-directory"]
+
+# Resolve persona names only when identity quota types are enabled. Disabled by
+# default to reduce API work and Prometheus label churn.
+resolve_names = false
+
+# PAPI pagination and cardinality guardrails.
+page_limit = 1000
+max_quotas = 10000
+
+# Backend writes use exponential backoff.
+stats_processor_max_retries = 8
+stats_processor_retry_interval = 5
+max_retries = 8
+preserve_case = false
+
+[logging]
+logfile = "goquotas.log"
+log_to_stdout = false
+# log_level = "NOTICE"
+# log_file_format = "text"
+
+[influxdb]
+host = "localhost"
+port = "8086"
+database = "isi_data_insights"
+authenticated = false
+# username = "influxuser"
+# password = "$env:INFLUXPASS"
+# use_ssl = false
+# skip_ssl_verify = false
+
+[influxdbv2]
+host = "localhost"
+port = "8086"
+org = "my-org"
+bucket = "isi_data_insights"
+access_token = "$env:INFLUX_TOKEN"
+# use_ssl = false
+# skip_ssl_verify = false
+
+[prometheus]
+authenticated = false
+# username = "promuser"
+# password = "$env:PROMPASS"
+# tls_cert = "/path/to/certificate"
+# tls_key = "/path/to/key"
+# instance_label_name = "isilon_cluster"
+
+[prom_http_sd]
+enabled = false
+# listen_addr = "collector.example.com"
+sd_port = 9999
+
+[[cluster]]
+hostname = "demo.cluster.com"
+username = "quota-reader"
+password = "$env:CLUSTER1PASS"
+authtype = "session"
+verify-ssl = true
+disabled = false
+# Required only with stats_processor = "prometheus".
+# prometheus_port = 9190
+# preserve_case = true

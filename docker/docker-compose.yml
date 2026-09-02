@@ -1,11 +1,12 @@
 # docker-compose.yml — PowerScale Data Insights evaluation stack
 #
-# Brings up InfluxDB, Grafana, gostats, and goppstats in one command.
+# Brings up InfluxDB, Grafana, gostats, goppstats, and goquotas in one command.
 #
 # Before starting:
 #   1. Copy the Docker example configs and add your cluster details:
 #        cp gostats.example.toml  gostats.toml
 #        cp goppstats.example.toml goppstats.toml
+#        cp goquotas.example.toml goquotas.toml
 #   2. In each file, set hostname, username, password under [[cluster]].
 #      Add additional [[cluster]] sections to monitor multiple clusters.
 #
@@ -59,6 +60,16 @@ services:
       dockerfile: docker/Dockerfile.goppstats
     volumes:
       - ./goppstats.toml:/etc/goppstats/goppstats.toml:ro
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+  goquotas:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.goquotas
+    volumes:
+      - ./goquotas.toml:/etc/goquotas/goquotas.toml:ro
     depends_on:
       - influxdb
     restart: unless-stopped

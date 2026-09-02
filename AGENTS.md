@@ -16,26 +16,29 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 ### What's been done
 - Monorepo created at `github.com/isilon/powerscale_data_insights`
 - Single Go module (go 1.24.6), no workspace — `go.mod` at root
-- Three commands: `cmd/gostats/`, `cmd/goppstats/`, `cmd/dashgen/`
+- Four commands: `cmd/gostats/`, `cmd/goppstats/`, `cmd/goquotas/`, `cmd/dashgen/`
 - Five shared internal packages extracted (see Architecture below)
 - goppstats refactored: PP data converts to generic Points before backends
 - All duplicated code between collectors eliminated
-- 9 Grafana dashboards for InfluxDB and 9 for Prometheus, all generated
+- 11 Grafana dashboards for InfluxDB and 11 for Prometheus, all generated
   from unified Python scripts (`scripts/generate_all.py`). Each dashboard
   includes a README text panel. Shared helpers in `scripts/dashlib.py`.
 - dashgen rewritten to produce legacy format (was v2beta1)
 - dashgen enhanced with `-backend` flag: generates InfluxDB (default) or
   Prometheus (PromQL) dashboards for PP datasets
 - All builds and tests pass (`make build && make test`)
-- Multi-stage Dockerfiles for gostats and goppstats (~23MB images)
+- Multi-stage Dockerfiles for gostats, goppstats, and goquotas
 - Docker Compose evaluation stacks (InfluxDB + Grafana and Prometheus +
   Grafana), both tested end-to-end against multi-cluster OneFS environment
 - Docker-specific example configs (stdout logging, backend host pre-set)
 - Grafana provisioning (auto-configured datasource + dashboard loading)
-- `.goreleaser.yaml` for cross-platform binary releases (3 binaries, 6 platforms)
+- `.goreleaser.yaml` for cross-platform binary releases (4 binaries, 6 platforms)
 - GitHub Actions CI (build + test on push/PR) and release (GoReleaser + Docker push on tag)
 - Full documentation suite (README, architecture, getting-started, config
   reference, dashboards, deployment, OneFS setup, migration guide)
+- Separate `goquotas` collector with a one-hour default cadence, directory
+  quota families enabled by default, explicit identity-quota opt-in, all four
+  backends, safety limits, and overview/detail dashboards
 
 ### What's next
 - Phase 6: Release
@@ -55,6 +58,9 @@ See `PLAN.md` for the full project plan with detailed phase descriptions.
 - Investigate adding support for the 3 missing summary stat endpoints
 - Additional dashboards: concurrency
 - dashgen test suite
+- Validate `goquotas` against representative customer-scale quota sets. Live
+  OneFS 9.11 validation of unusual cases and both backends is complete. See
+  `docs/quota-collector-plan.md` for the results and outstanding scale input.
 
 ## Build & Test
 
@@ -68,6 +74,7 @@ make test
 # Build individual components
 make build-gostats
 make build-goppstats
+make build-goquotas
 make build-dashgen
 
 # Run all tests with verbose output
@@ -86,6 +93,7 @@ powerscale_data_insights/
 ├── cmd/
 │   ├── gostats/      — OneFS statistics collector (package main)
 │   ├── goppstats/    — Partitioned Performance collector (package main)
+│   ├── goquotas/     — OneFS quota collector (package main)
 │   └── dashgen/      — Grafana dashboard generator (package main)
 ├── internal/
 │   ├── api/          — Shared OneFS PAPI HTTP client (auth, retry, TLS)
@@ -93,15 +101,15 @@ powerscale_data_insights/
 │   ├── config/       — Shared config structs, SecretFromEnv, defaults
 │   ├── logging/      — slog setup, custom levels (TRACE-FATAL), LoggingConfig
 │   └── platform/     — Config watcher, SIGHUP, socket options, network utils
-├── dashboards/       — Pre-built Grafana dashboards (empty, Phase 3)
+├── dashboards/       — Generated Grafana dashboards
 ├── configs/          — Example TOML config files
-├── docker/           — Dockerfiles and Compose (empty, Phase 4)
-├── docs/             — Documentation (empty, Phase 5)
+├── docker/           — Dockerfiles and evaluation Compose stacks
+├── docs/             — Project documentation
 └── papi/             — OneFS PAPI 9.11 schema reference
 ```
 
 ### internal/api
-Shared PAPI client used by all three commands. Provides `Cluster` struct with:
+Shared PAPI client used by the collectors and dashgen. Provides `Cluster` struct with:
 - Session and basic auth with exponential backoff retry
 - Automatic re-authentication on 401 and session timeout
 - `Connect()`, `RestGet()`, `Authenticate()`, `GetClusterConfig()`
@@ -152,6 +160,15 @@ Collects Partitioned Performance data via PAPI. Key local files:
 - `prometheus.go` — goppstats-specific Prometheus backend
 - `config.go` — goppstats-specific config (export lookup, etc.)
 
+### cmd/goquotas
+Collects live SmartQuotas state via PAPI on a configurable slow cadence. Key
+local files:
+- `main.go` — per-cluster loops, reload, snapshot reconciliation, retries
+- `isilon_api.go` — type-filtered, paginated quota API queries
+- `backend.go` — nullable/readiness-aware quota → Point conversion
+- `prometheus.go` — atomic current-snapshot Prometheus backend
+- `config.go` — cadence, quota types, pagination, and safety limits
+
 ### cmd/dashgen
 Generates Grafana dashboard JSON for PP datasets. Single file
 (`main.go`, ~940 lines). Uses `internal/api` for PAPI access. Supports
@@ -161,6 +178,7 @@ both InfluxDB (InfluxQL) and Prometheus (PromQL) backends via `-backend` flag.
 
 - gostats config: TOML format, default `idic.toml`
 - goppstats config: TOML format, default `goppstats.toml`
+- goquotas config: TOML format, default `goquotas.toml`
 - Example configs in `configs/`
 - Passwords support `$env:VAR` syntax for environment variable substitution
 
@@ -174,12 +192,13 @@ the GitHub org is canonically `Isilon`. GitHub resolves both.
 ## Testing
 
 ```bash
-# All tests (5 packages)
+# All tests
 go test ./...
 
 # Verbose
 go test -v ./cmd/gostats/...
 go test -v ./cmd/goppstats/...
+go test -v ./cmd/goquotas/...
 go test -v ./internal/...
 ```
 

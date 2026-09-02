@@ -1,0 +1,322 @@
+{
+  "id": null,
+  "uid": null,
+  "title": "PowerScale - Quota Overview",
+  "description": "Current quota inventory, readiness, and threshold utilization.",
+  "tags": [
+    "powerscale",
+    "goquotas"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "refresh": "5m",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "DS_INFLUXDB"
+        },
+        "query": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"cluster\"",
+        "definition": "SHOW TAG VALUES FROM \"quota\" WITH KEY = \"cluster\"",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "current": {},
+        "refresh": 1,
+        "hide": 0,
+        "allValue": ""
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 5,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Quota Overview\n\nCurrent directory quota usage and threshold state from **goquotas**. Directory\nand default-directory quotas are collected by default; totals reflect the quota\ntypes enabled in the collector. Use the path selector to open the detail view.\n\nQuota IDs remain available in the data for stable identity, while paths are\nused as the human-facing selector. InfluxDB current-state panels use a\nthree-hour freshness window, sized for the default one-hour collection cadence.\n",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Collected Quotas",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT count(\"present\") FROM (SELECT last(\"present\") AS \"present\" FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND time > now() - 3h GROUP BY \"quota_id\") WHERE \"present\" = true",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Hard Threshold Exceeded",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT count(\"hard_exceeded\") FROM (SELECT last(\"hard_exceeded\") AS \"hard_exceeded\" FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND time > now() - 3h GROUP BY \"quota_id\") WHERE \"hard_exceeded\" = true",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Accounting Not Ready",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT count(\"ready\") FROM (SELECT last(\"ready\") AS \"ready\" FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND time > now() - 3h GROUP BY \"quota_id\") WHERE \"ready\" = false",
+          "resultFormat": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto",
+        "graphMode": "area",
+        "textMode": "auto",
+        "wideLayout": true
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Quotas by Hard-Limit Utilization",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "DS_INFLUXDB"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "DS_INFLUXDB"
+          },
+          "rawQuery": true,
+          "query": "SELECT last(\"hard_utilization_ratio\") * 100 AS \"Hard utilization\" FROM \"quota\" WHERE \"cluster\" =~ /^$cluster$/ AND time > now() - 3h GROUP BY \"quota_id\", \"path\", \"quota_type\", \"include_snapshots\"",
+          "resultFormat": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Hard utilization",
+            "desc": true
+          }
+        ]
+      }
+    }
+  ],
+  "links": []
+}

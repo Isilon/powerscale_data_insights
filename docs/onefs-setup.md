@@ -7,14 +7,21 @@ collection.
 
 | Privilege | Required by | Purpose |
 |-----------|-------------|---------|
+| `ISI_PRIV_LOGIN_PAPI` (read-only) | all PAPI clients | Log in to the Platform API |
 | `ISI_PRIV_STATISTICS` | gostats | Read cluster and node statistics via PAPI |
 | `ISI_PRIV_PERFORMANCE` | goppstats, dashgen | Read Partitioned Performance datasets via PAPI |
 | `ISI_PRIV_NFS` (read-only) | goppstats (optional) | Resolve NFS export IDs to export paths |
+| `ISI_PRIV_QUOTA` / `ISI_PRIV_QUOTA_QUOTAMANAGEMENT` (read-only) | goquotas | Read live quota configuration and accounting values |
 
 If you only plan to run gostats, you only need `ISI_PRIV_STATISTICS`.
 If you also run goppstats, add `ISI_PRIV_PERFORMANCE`. The NFS privilege
 is optional and only needed if you set `lookup_export_ids = true` in the
 goppstats config.
+
+To run goquotas, the cluster must have SmartQuotas available and the account
+must have read access to quota management. Granular fields such as efficiency
+ratio or filesystem-physical usage may require the corresponding quota
+subprivileges on newer OneFS releases.
 
 ## Create a Role and User via the CLI
 
@@ -22,16 +29,22 @@ Connect to your cluster via SSH and run:
 
 ```bash
 # Create a role with the required privileges
-isi auth roles create --name=StatsCollector \
+isi auth roles create StatsCollector \
   --description="PowerScale Data Insights statistics collection"
 
 isi auth roles modify StatsCollector \
-  --add-priv-ro=ISI_PRIV_STATISTICS \
-  --add-priv-ro=ISI_PRIV_PERFORMANCE
+  --add-priv-read ISI_PRIV_LOGIN_PAPI \
+  --add-priv-read ISI_PRIV_STATISTICS \
+  --add-priv-read ISI_PRIV_PERFORMANCE
+
+# Add quota read access when running goquotas
+isi auth roles modify StatsCollector \
+  --add-priv-read ISI_PRIV_QUOTA \
+  --add-priv-read ISI_PRIV_QUOTA_QUOTAMANAGEMENT
 
 # Optional: add NFS privilege for export path resolution
 isi auth roles modify StatsCollector \
-  --add-priv-ro=ISI_PRIV_NFS
+  --add-priv-read ISI_PRIV_NFS
 
 # Create a local user
 isi auth users create statsuser --enabled=true \
@@ -49,9 +62,11 @@ isi auth roles modify StatsCollector --add-user=statsuser
    - Name: `StatsCollector`
    - Description: `PowerScale Data Insights statistics collection`
 4. Add privileges:
+   - `ISI_PRIV_LOGIN_PAPI` (read-only)
    - `ISI_PRIV_STATISTICS` (read/write)
    - `ISI_PRIV_PERFORMANCE` (read-only)
    - `ISI_PRIV_NFS` (read-only, optional)
+   - `ISI_PRIV_QUOTA` and `ISI_PRIV_QUOTA_QUOTAMANAGEMENT` (read-only, for goquotas)
 5. Navigate to **Access > Membership & Roles > Users**
 6. Click **Create a User**
    - Username: `statsuser`
@@ -71,6 +86,10 @@ curl -k -u statsuser:password \
 # Test PP access (goppstats)
 curl -k -u statsuser:password \
   "https://your-cluster:8080/platform/10/performance/datasets"
+
+# Test live directory quota access (goquotas)
+curl -k -u statsuser:password \
+  "https://your-cluster:8080/platform/8/quota/quotas?type=directory&limit=1"
 ```
 
 A successful response returns JSON with the requested data. A 403 response
@@ -97,7 +116,7 @@ indicates missing privileges.
 
 ## Multiple Clusters
 
-Both collectors support monitoring multiple clusters from a single instance.
+All collectors support monitoring multiple clusters from a single instance.
 Add additional `[[cluster]]` sections to the config file:
 
 ```toml

@@ -4,7 +4,7 @@ Collect, store, and visualize Dell PowerScale OneFS cluster performance data.
 
 PowerScale Data Insights is the successor to the
 [Isilon Data Insights Connector](https://github.com/Isilon/isilon_data_insights_connector).
-It replaces the Python-based collector with two purpose-built Go collectors,
+It replaces the Python-based collector with purpose-built Go collectors,
 adds a dashboard generator for Partitioned Performance datasets, and ships
 modernized Grafana dashboards.
 
@@ -14,6 +14,7 @@ modernized Grafana dashboards.
 |-----------|-------------|
 | **gostats** | Collects OneFS statistics via PAPI and writes to InfluxDB v1/v2 or Prometheus |
 | **goppstats** | Collects OneFS Partitioned Performance data via PAPI and writes to InfluxDB v1/v2 or Prometheus |
+| **goquotas** | Samples live OneFS directory quota usage and limits on a slow cadence; user/group quota families are opt-in |
 | **dashgen** | Generates Grafana dashboards for Partitioned Performance datasets by querying the PAPI at runtime |
 
 `gostats` is resilient to transient per-stat and per-node OneFS failures: it
@@ -34,12 +35,12 @@ for behavior, defaults, and tuning guidance.
     ┌────┴────────────────────────┴────┐
     │                                  │
     ▼                                  ▼
-┌──────────┐                    ┌────────────┐
-│ gostats  │                    │ goppstats  │
-│(stats)   │                    │(PP data)   │
-└────┬─────┘                    └─────┬──────┘
-     │                                │
-     └───────────┬────────────────────┘
+┌──────────┐       ┌────────────┐       ┌──────────┐
+│ gostats  │       │ goppstats  │       │ goquotas │
+│(stats)   │       │(PP data)   │       │ (quotas) │
+└────┬─────┘       └─────┬──────┘       └────┬─────┘
+     │                   │                   │
+     └───────────────────┼───────────────────┘
                  │
                  ▼
           ┌────────────────┐
@@ -56,7 +57,7 @@ for behavior, defaults, and tuning guidance.
           └────────────────┘
 ```
 
-Both collectors run independently, querying one or more OneFS clusters via
+The collectors run independently, querying one or more OneFS clusters via
 PAPI and writing time-series data to the configured backend. Grafana reads
 from the time-series database and renders the pre-built dashboards. See
 [docs/architecture.md](docs/architecture.md) for details.
@@ -64,7 +65,8 @@ from the time-series database and renders the pre-built dashboards. See
 ## Requirements
 
 - **Go 1.25+** (build from source)
-- **OneFS 9.x+** (PAPI v10 for Partitioned Performance, PAPI v3 for summary stats)
+- **OneFS 9.x+** (PAPI v10 for Partitioned Performance, PAPI v8 for quotas,
+  PAPI v3 for summary stats)
 - **InfluxDB** v1.8+ or v2.x (InfluxQL compatibility)
 - **Grafana** 10+ (legacy dashboard format with modern panel types)
 
@@ -74,13 +76,14 @@ There are three ways to get up and running:
 
 ### Option 1: Docker Compose (fastest)
 
-Brings up InfluxDB, Grafana, and both collectors in one command.
+Brings up InfluxDB, Grafana, and all collectors in one command.
 
 ```bash
 cd docker/
 cp gostats.example.toml gostats.toml
 cp goppstats.example.toml goppstats.toml
-# Edit both files: set hostname, username, password under [[cluster]]
+cp goquotas.example.toml goquotas.toml
+# Edit the files: set hostname, username, password under [[cluster]]
 
 docker compose up -d
 ```
@@ -94,9 +97,10 @@ Pre-built dashboards are provisioned automatically.
 make build
 ```
 
-This produces three binaries in `bin/`:
+This produces four binaries in `bin/`:
 - `bin/gostats`
 - `bin/goppstats`
+- `bin/goquotas`
 - `bin/dashgen`
 
 Configure and run:
@@ -104,10 +108,12 @@ Configure and run:
 ```bash
 cp configs/gostats.example.toml idic.toml
 cp configs/goppstats.example.toml goppstats.toml
-# Edit both files with your cluster and InfluxDB details
+cp configs/goquotas.example.toml goquotas.toml
+# Edit the files with your cluster and InfluxDB details
 
 ./bin/gostats -config-file idic.toml
 ./bin/goppstats -config-file goppstats.toml
+./bin/goquotas -config-file goquotas.toml
 ```
 
 ### Option 3: Docker (standalone containers)
@@ -116,10 +122,12 @@ cp configs/goppstats.example.toml goppstats.toml
 # Build
 docker build -f docker/Dockerfile.gostats -t pdi-gostats .
 docker build -f docker/Dockerfile.goppstats -t pdi-goppstats .
+docker build -f docker/Dockerfile.goquotas -t pdi-goquotas .
 
 # Run (mount your config file)
 docker run -d -v /path/to/idic.toml:/etc/gostats/idic.toml pdi-gostats
 docker run -d -v /path/to/goppstats.toml:/etc/goppstats/goppstats.toml pdi-goppstats
+docker run -d -v /path/to/goquotas.toml:/etc/goquotas/goquotas.toml pdi-goquotas
 ```
 
 ### Generate a Partitioned Performance dashboard
@@ -150,6 +158,7 @@ powerscale_data_insights/
 ├── cmd/
 │   ├── gostats/          Statistics collector
 │   ├── goppstats/        Partitioned Performance collector
+│   ├── goquotas/         Quota usage collector
 │   └── dashgen/          Dashboard generator
 ├── internal/             Shared library (PAPI client, backends, config, logging)
 ├── dashboards/influxdb/  Pre-built Grafana dashboards (InfluxQL)

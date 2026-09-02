@@ -20,6 +20,8 @@ GENERATORS = [
     "generate_protocol_summary",
     "generate_client_summary",
     "generate_system_workload",
+    "generate_quota_overview",
+    "generate_quota_detail",
 ]
 
 

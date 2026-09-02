@@ -1,7 +1,7 @@
 # Configuration Reference
 
-Both gostats and goppstats use TOML configuration files. This document
-covers every option for both collectors, plus the dashgen CLI flags.
+gostats, goppstats, and goquotas use TOML configuration files. This document
+covers every option for the collectors, plus the dashgen CLI flags.
 
 Example configs are provided in `configs/` (bare-metal) and `docker/`
 (Docker Compose, with stdout logging and InfluxDB host pre-set).
@@ -37,6 +37,16 @@ gostats [flags]
 ```
 goppstats [flags]
   -config-file string   Pathname of config file (default "goppstats.toml")
+  -logfile string       Pathname of log file (overrides config)
+  -loglevel string      Log level (overrides config): TRACE|DEBUG|INFO|NOTICE|WARN|ERROR|CRITICAL
+  -version              Print version and exit
+```
+
+### goquotas
+
+```
+goquotas [flags]
+  -config-file string   Pathname of config file (default "goquotas.toml")
   -logfile string       Pathname of log file (overrides config)
   -loglevel string      Log level (overrides config): TRACE|DEBUG|INFO|NOTICE|WARN|ERROR|CRITICAL
   -version              Print version and exit
@@ -243,9 +253,38 @@ Partitioned Performance datasets defined on each cluster.
 
 ---
 
+## TOML Configuration: goquotas
+
+goquotas shares the `[logging]`, `[influxdb]`, `[influxdbv2]`,
+`[prometheus]`, `[prom_http_sd]`, and `[[cluster]]` sections documented above.
+With Prometheus, each cluster requires its own `prometheus_port`.
+
+### [global]
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `version` | string | *required* | Config format version (`"v0.1"`) |
+| `stats_processor` | string | `"influxdb"` | Backend: `"influxdb"`, `"influxdbv2"`, `"prometheus"`, or `"discard"` |
+| `collection_interval` | duration | `"1h"` | Interval between complete live quota snapshots |
+| `quota_types` | string array | `["directory", "default-directory"]` | Quota types queried from OneFS. User/group families require explicit opt-in |
+| `resolve_names` | bool | `false` | Resolve identity persona names; useful only when identity quota types are enabled |
+| `page_limit` | int | `1000` | Maximum quotas requested per PAPI page |
+| `max_quotas` | int | `10000` | Hard snapshot limit; exceeding it fails the collection without replacing prior data |
+| `stats_processor_max_retries` | int | `8` | Max retries for backend writes; `0` retries indefinitely |
+| `stats_processor_retry_interval` | int | `5` | Initial backend retry delay in seconds |
+| `max_retries` | int | `8` | Max transport retries; `0` retries indefinitely |
+| `preserve_case` | bool | `false` | Preserve cluster name casing |
+
+Quota types accepted by `quota_types` are `directory`, `default-directory`,
+`user`, `default-user`, `group`, and `default-group`. Only configured types are
+requested from OneFS. Null or not-ready usage values are omitted rather than
+reported as zero.
+
+---
+
 ## Configuration Reload
 
-Both collectors support live configuration reload without restarting:
+All collectors support live configuration reload without restarting:
 
 - **SIGHUP signal:** `kill -HUP <pid>`
 - **File watcher:** changes to the config file are detected automatically

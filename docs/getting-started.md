@@ -24,6 +24,7 @@ At minimum, the user needs:
 | `ISI_PRIV_STATISTICS` | gostats | Read cluster statistics |
 | `ISI_PRIV_PERFORMANCE` | goppstats | Read Partitioned Performance data |
 | `ISI_PRIV_NFS` (read-only) | goppstats (optional) | Resolve NFS export IDs to paths |
+| `ISI_PRIV_QUOTA` (read-only) | goquotas | Read live quota accounting and limits |
 
 ## Step 2: Set Up InfluxDB
 
@@ -44,15 +45,16 @@ InfluxDB v2).
 
 ### Option A: Docker Compose (recommended for evaluation)
 
-This brings up InfluxDB, Grafana, and both collectors in one step.
+This brings up InfluxDB, Grafana, and all collectors in one step.
 
 ```bash
 cd docker/
 cp gostats.example.toml gostats.toml
 cp goppstats.example.toml goppstats.toml
+cp goquotas.example.toml goquotas.toml
 ```
 
-Edit both config files — at minimum, update the `[[cluster]]` section:
+Edit the config files — at minimum, update the `[[cluster]]` section:
 
 ```toml
 [[cluster]]
@@ -81,7 +83,8 @@ cd powerscale_data_insights
 make build
 ```
 
-This produces `bin/gostats`, `bin/goppstats`, and `bin/dashgen`.
+This produces `bin/gostats`, `bin/goppstats`, `bin/goquotas`, and
+`bin/dashgen`.
 
 ### Option C: Download pre-built binaries
 
@@ -96,6 +99,7 @@ Copy the example configs and edit them:
 ```bash
 cp configs/gostats.example.toml idic.toml
 cp configs/goppstats.example.toml goppstats.toml
+cp configs/goquotas.example.toml goquotas.toml
 ```
 
 In each file, update:
@@ -113,6 +117,9 @@ Start the collectors:
 
 # Collect Partitioned Performance data (in a separate terminal)
 ./bin/goppstats -config-file goppstats.toml
+
+# Collect directory quota usage (in a separate terminal)
+./bin/goquotas -config-file goquotas.toml
 ```
 
 You should see log output indicating successful connection to each cluster
@@ -148,6 +155,8 @@ The four core dashboards are:
 | **PowerScale - Cluster Detail** | Single cluster deep dive with CPU, network, disk, cache, protocol panels |
 | **PowerScale - Cluster Capacity** | Storage utilization across clusters |
 | **PowerScale - Protocol Overview** | Cluster-level protocol performance for a single cluster |
+| **PowerScale - Quota Overview** | Current quota inventory, readiness, and top utilization |
+| **PowerScale - Quota Detail** | Usage and limit history selected by cluster and quota path |
 
 ## Step 6: Generate PP Dashboards (Optional)
 

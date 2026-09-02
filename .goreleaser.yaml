@@ -1,6 +1,6 @@
 # .goreleaser.yaml — PowerScale Data Insights release configuration
 #
-# Builds three binaries (gostats, goppstats, dashgen) for multiple platforms.
+# Builds four binaries (gostats, goppstats, goquotas, dashgen) for multiple platforms.
 #
 # Usage:
 #   goreleaser release              # full release (requires GITHUB_TOKEN)
@@ -60,12 +60,29 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
 
+  - id: goquotas
+    main: ./cmd/goquotas/
+    binary: goquotas
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
+
 archives:
   - id: default
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     files:

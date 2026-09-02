@@ -22,8 +22,11 @@ for visualization in Grafana.
 │ stats    │                    │ stats      │
 └────┬─────┘                    └─────┬──────┘
      │                                │
-     │  generic Points                │
-     └───────────┬────────────────────┘
+     │  generic Points                │       ┌──────────┐
+     └───────────┬────────────────────┘       │ goquotas │
+                 │                            │ quota     │
+                 │◀───────────────────────────┤ snapshots │
+                 │                            └──────────┘
                  │
         ┌────────┴────────┐
         ▼                 ▼
@@ -91,6 +94,27 @@ dataset's partition attributes.
 **Key files:**
 - `cmd/dashgen/main.go` — single-file tool (~950 lines)
 
+### goquotas — Quota Collector
+
+Samples live OneFS quota accounting and threshold state independently from
+the performance collectors. It collects directory and default-directory quota
+families by default on a configurable one-hour interval. User and group quota
+families require explicit opt-in because linked identity quotas can create high
+API and time-series cardinality.
+
+The collector queries the pinned PAPI v8 quota representation for OneFS 9.0+
+compatibility, completes all pages and enabled types before publishing, omits
+null or not-ready values, and preserves the prior Prometheus snapshot after a
+failed collection.
+
+**Key files:**
+
+- `cmd/goquotas/main.go` — lifecycle, scheduling, retries, reload
+- `cmd/goquotas/isilon_api.go` — type-filtered quota pagination and decoding
+- `cmd/goquotas/backend.go` — quota-to-Point conversion and deletion tombstones
+- `cmd/goquotas/prometheus.go` — atomic current-snapshot exporter
+- `cmd/goquotas/config.go` — cadence, quota-type, and guardrail configuration
+
 ### Shared Library (`internal/`)
 
 Duplicated code between gostats and goppstats has been extracted into five
@@ -116,6 +140,8 @@ internal packages:
    on a schedule driven by each stat's native update interval.
    **goppstats** queries `/platform/10/performance/datasets` every 30 seconds
    to discover datasets and then fetches the latest data points.
+   **goquotas** queries `/platform/8/quota/quotas` by enabled quota type,
+   immediately at startup and hourly by default.
 4. Raw API responses are converted to generic `Point` structs (measurement
    name, timestamp, key-value fields, key-value tags).
 
@@ -137,7 +163,7 @@ internal packages:
 
 ## Authentication
 
-Both collectors support two OneFS authentication modes:
+All collectors support two OneFS authentication modes:
 
 - **Session auth** (default) — POST to `/session/1/session` to obtain a
   session cookie; automatic re-authentication on 401 or session timeout.
@@ -149,7 +175,7 @@ storing passwords in config files.
 
 ## Configuration Reload
 
-Both collectors support live configuration reload:
+All collectors support live configuration reload:
 
 - **SIGHUP** — send `kill -HUP <pid>` to reload the config file
 - **File watcher** — fsnotify-based; the collector detects config file

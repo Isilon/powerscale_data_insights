@@ -39,6 +39,7 @@ Edit them with your cluster and InfluxDB details:
 ```bash
 sudo $EDITOR /etc/powerscale-data-insights/gostats.toml
 sudo $EDITOR /etc/powerscale-data-insights/goppstats.toml
+sudo $EDITOR /etc/powerscale-data-insights/goquotas.toml
 ```
 
 See [Configuration Reference](configuration.md).
@@ -51,7 +52,7 @@ Service files are included in the `systemd/` directory and can be installed with
 sudo make install-systemd
 ```
 
-This copies `systemd/pdi-gostats.service` and `systemd/pdi-goppstats.service`
+This copies the gostats, goppstats, and goquotas units
 to `/etc/systemd/system/` and prints the remaining setup steps. If you need to
 install to a different location:
 
@@ -77,7 +78,7 @@ sudo chmod 600 /etc/powerscale-data-insights/env
 #   EnvironmentFile=/etc/powerscale-data-insights/env
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now pdi-gostats pdi-goppstats
+sudo systemctl enable --now pdi-gostats pdi-goppstats pdi-goquotas
 ```
 
 Manage:
@@ -98,6 +99,7 @@ From the project root:
 ```bash
 docker build -f docker/Dockerfile.gostats -t pdi-gostats .
 docker build -f docker/Dockerfile.goppstats -t pdi-goppstats .
+docker build -f docker/Dockerfile.goquotas -t pdi-goquotas .
 ```
 
 Images are ~23MB (Alpine-based, statically linked binary).
@@ -116,6 +118,11 @@ docker run -d --name goppstats \
   --restart unless-stopped \
   -v /path/to/goppstats.toml:/etc/goppstats/goppstats.toml:ro \
   pdi-goppstats
+
+docker run -d --name goquotas \
+  --restart unless-stopped \
+  -v /path/to/goquotas.toml:/etc/goquotas/goquotas.toml:ro \
+  pdi-goquotas
 ```
 
 In your config file, set `log_to_stdout = true` so logs are visible via
@@ -129,11 +136,12 @@ Pre-built images are published to GitHub Container Registry on each release:
 ```bash
 docker pull ghcr.io/isilon/pdi-gostats:latest
 docker pull ghcr.io/isilon/pdi-goppstats:latest
+docker pull ghcr.io/isilon/pdi-goquotas:latest
 ```
 
 ## Docker Compose (Evaluation Stack)
 
-The Docker Compose stack brings up InfluxDB, Grafana, and both collectors
+The Docker Compose stack brings up InfluxDB, Grafana, and all collectors
 in one command. Dashboards and the InfluxDB datasource are provisioned
 automatically.
 
@@ -143,9 +151,10 @@ automatically.
 cd docker/
 cp gostats.example.toml gostats.toml
 cp goppstats.example.toml goppstats.toml
+cp goquotas.example.toml goquotas.toml
 ```
 
-Edit both files — set your cluster hostname, username, and password in the
+Edit the files — set your cluster hostname, username, and password in the
 `[[cluster]]` section. The InfluxDB host is already set to `influxdb` (the
 Compose service name) and logging is set to stdout.
 
@@ -171,8 +180,8 @@ docker compose down -v    # stop containers and delete all data
 
 ### Monitoring Multiple Clusters
 
-Add additional `[[cluster]]` sections to `gostats.toml` and
-`goppstats.toml`:
+Add additional `[[cluster]]` sections to `gostats.toml`, `goppstats.toml`,
+and `goquotas.toml`:
 
 ```toml
 [[cluster]]
@@ -188,7 +197,7 @@ password = "password-b"
 verify-ssl = false
 ```
 
-Restart the collectors: `docker compose restart gostats goppstats`
+Restart the collectors: `docker compose restart gostats goppstats goquotas`
 
 ## Kubernetes
 
@@ -204,7 +213,7 @@ manual deployment.
 - Set `log_to_stdout = true` and `logfile_format = "json"` for structured
   log aggregation.
 - Set the InfluxDB host to the in-cluster service name.
-- Both collectors are stateless — they can be restarted freely.
+- The collectors are stateless — they can be restarted freely.
 - Use `Deployment` with `replicas: 1` (running multiple replicas of the
   same collector against the same cluster would produce duplicate data).
 

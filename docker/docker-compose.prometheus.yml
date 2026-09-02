@@ -1,11 +1,12 @@
 # docker-compose.prometheus.yml — PowerScale Data Insights Prometheus stack
 #
-# Brings up Prometheus, Grafana, gostats, and goppstats in one command.
+# Brings up Prometheus, Grafana, gostats, goppstats, and goquotas in one command.
 #
 # Before starting:
 #   1. Copy the Prometheus example configs and add your cluster details:
 #        cp gostats.prometheus.example.toml  gostats.prometheus.toml
 #        cp goppstats.prometheus.example.toml goppstats.prometheus.toml
+#        cp goquotas.prometheus.example.toml goquotas.prometheus.toml
 #   2. In each file, set hostname, username, password under [[cluster]].
 #      Each cluster needs a unique prometheus_port.
 #   3. Add matching scrape targets in prometheus/prometheus.yml.
@@ -62,6 +63,16 @@ services:
       dockerfile: docker/Dockerfile.goppstats
     volumes:
       - ./goppstats.prometheus.toml:/etc/goppstats/goppstats.toml:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  goquotas:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.goquotas
+    volumes:
+      - ./goquotas.prometheus.toml:/etc/goquotas/goquotas.toml:ro
     depends_on:
       - prometheus
     restart: unless-stopped

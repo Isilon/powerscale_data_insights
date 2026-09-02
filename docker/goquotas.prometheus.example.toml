@@ -1,0 +1,39 @@
+[global]
+version = "v0.1"
+stats_processor = "prometheus"
+collection_interval = "1h"
+quota_types = ["directory", "default-directory"]
+resolve_names = false
+page_limit = 1000
+max_quotas = 10000
+max_retries = 8
+
+[logging]
+log_to_stdout = true
+
+[influxdb]
+host = "influxdb"
+port = "8086"
+database = "isi_data_insights"
+authenticated = false
+
+[influxdbv2]
+host = "localhost"
+port = "8086"
+org = "my-org"
+bucket = "isi_data_insights"
+access_token = "$env:INFLUX_TOKEN"
+
+[prometheus]
+authenticated = false
+
+[prom_http_sd]
+enabled = false
+sd_port = 9999
+
+[[cluster]]
+hostname = "demo.cluster.com"
+username = "quota-reader"
+password = "$env:CLUSTER1PASS"
+verify-ssl = false
+prometheus_port = 9190

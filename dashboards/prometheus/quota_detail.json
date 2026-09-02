@@ -1,0 +1,405 @@
+{
+  "id": null,
+  "uid": null,
+  "title": "PowerScale - Quota Detail",
+  "description": "Historical usage and thresholds for a selected quota path.",
+  "tags": [
+    "powerscale",
+    "goquotas",
+    "prometheus"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "refresh": "5m",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "templating": {
+    "list": [
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "DS_PROMETHEUS"
+        },
+        "query": "label_values(isilon_quota_present, cluster)",
+        "definition": "label_values(isilon_quota_present, cluster)",
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      },
+      {
+        "name": "path",
+        "label": "Quota Path",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "DS_PROMETHEUS"
+        },
+        "query": "label_values(isilon_quota_present{cluster=~\"$cluster\"}, path)",
+        "definition": "label_values(isilon_quota_present{cluster=~\"$cluster\"}, path)",
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      },
+      {
+        "name": "quota_type",
+        "label": "Quota Type",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "DS_PROMETHEUS"
+        },
+        "query": "label_values(isilon_quota_present{cluster=~\"$cluster\",path=~\"$path\"}, quota_type)",
+        "definition": "label_values(isilon_quota_present{cluster=~\"$cluster\",path=~\"$path\"}, quota_type)",
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      },
+      {
+        "name": "include_snapshots",
+        "label": "Includes Snapshots",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "DS_PROMETHEUS"
+        },
+        "query": "label_values(isilon_quota_present{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\"}, include_snapshots)",
+        "definition": "label_values(isilon_quota_present{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\"}, include_snapshots)",
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {},
+        "refresh": 1,
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "## PowerScale - Quota Detail\n\nUsage, limits, and inode history for the selected quota path. If several quota\ndomains share a path, use quota type and snapshot inclusion to disambiguate\nthem. Missing lines indicate an unset threshold or a value that OneFS reports\nas not ready; they are never converted to zero.\n",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Usage and Thresholds",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_usage_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Usage",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_advisory_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Advisory",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_soft_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Soft",
+          "editorMode": "code"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_hard_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Hard",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Logical and Physical Usage",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_usage_applogical_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Application logical",
+          "editorMode": "code"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_usage_fslogical_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Filesystem logical",
+          "editorMode": "code"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_usage_physical_bytes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Physical",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Inodes",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "DS_PROMETHEUS"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "DS_PROMETHEUS"
+          },
+          "expr": "isilon_quota_usage_inodes{cluster=~\"$cluster\",path=~\"$path\",quota_type=~\"$quota_type\",include_snapshots=~\"$include_snapshots\"}",
+          "legendFormat": "Inodes",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "gradientMode": "none",
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "min",
+            "max",
+            "mean",
+            "lastNotNull"
+          ],
+          "width": 500
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ],
+  "links": []
+}

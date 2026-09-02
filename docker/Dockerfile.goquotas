@@ -1,0 +1,15 @@
+# Multi-stage build for the PowerScale quota collector.
+FROM golang:1.26-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /goquotas ./cmd/goquotas/
+
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata
+COPY --from=builder /goquotas /usr/local/bin/goquotas
+ENTRYPOINT ["goquotas"]
+CMD ["-config-file", "/etc/goquotas/goquotas.toml"]

@@ -40,6 +40,8 @@ jobs:
             image: ghcr.io/isilon/pdi-gostats
           - dockerfile: docker/Dockerfile.goppstats
             image: ghcr.io/isilon/pdi-goppstats
+          - dockerfile: docker/Dockerfile.goquotas
+            image: ghcr.io/isilon/pdi-goquotas
     steps:
       - uses: actions/checkout@v4
 

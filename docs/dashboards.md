@@ -11,9 +11,9 @@ and v2 (via InfluxQL).
 
 ## Pre-Built Dashboards
 
-The pre-built dashboards are in `dashboards/influxdb/`. They are tagged
-with `["powerscale", "gostats"]` and use data collected by the **gostats**
-collector.
+The pre-built dashboards are in `dashboards/influxdb/` and
+`dashboards/prometheus/`. Most use data collected by **gostats**; quota
+dashboards are tagged `goquotas` and use the quota collector.
 
 ### PowerScale - Cluster List
 
@@ -63,6 +63,33 @@ utilization per cluster with color-coded thresholds (green <85%,
 orange 85-90%, red >90%).
 
 **Variables:** cluster (multi-select)
+
+### PowerScale - Quota Overview
+
+**File:** `quota_overview.json`
+
+Current quota inventory and threshold status from goquotas. It shows collected
+quota count, hard-threshold violations, not-ready accounting domains, and a
+table ordered by hard-limit utilization. Counts reflect the quota types enabled
+in `goquotas.toml`; directory and default-directory are the defaults.
+InfluxDB current-state panels use a three-hour freshness window. Increase that
+window in the generator if `collection_interval` is configured above one hour.
+
+**Variables:** cluster (multi-select)
+
+### PowerScale - Quota Detail
+
+**File:** `quota_detail.json`
+
+Historical usage, threshold, logical/physical consumption, and inode trends
+for a selected quota path. Path is the human-facing selector. Quota type and
+snapshot inclusion disambiguate multiple quota domains on the same path while
+the quota ID remains the stable identity in stored data.
+
+Missing values mean a threshold is unset or OneFS reports that accounting
+value as not ready; goquotas never converts those cases to zero.
+
+**Variables:** cluster, quota path, quota type, includes snapshots
 
 ### PowerScale - Protocol Overview
 

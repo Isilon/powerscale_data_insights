@@ -401,6 +401,8 @@ by following the getting-started guide.
 | Helm chart | Low | Kubernetes-native deployment |
 | Alerting templates | Low | Successor to Kapacitor TICK scripts |
 | dashgen test suite | Medium | dashgen currently has no tests; add unit tests for query generation, panel building, and PAPI response parsing |
+| Quota collector (`goquotas`) | Implemented | Separate slow-cadence collector and quota dashboards; directory quota families by default, user/group families opt-in. Live OneFS 9.11 validation is complete; representative scale validation remains. See [`docs/quota-collector-plan.md`](docs/quota-collector-plan.md). |
+| TSDB retention guidance | Medium | Revisit retention and downsampling across all collectors and backends; keep it outside the quota collector implementation. |
 
 ---
 
