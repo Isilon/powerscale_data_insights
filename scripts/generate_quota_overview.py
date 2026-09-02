@@ -54,11 +54,11 @@ def generate(backend):
         ]
 
     panels.extend([
-        stat_panel(ds, 2, "Collected Quotas", total, 5, x=0, w=8, h=4),
+        stat_panel(ds, 2, "Collected Quotas", total, 5, x=0, w=8, h=4, no_value="0"),
         stat_panel(ds, 3, "Hard Threshold Exceeded", hard, 5, x=8, w=8, h=4,
-                   thresholds={"mode": "absolute", "steps": [{"color": "green", "value": None}, {"color": "red", "value": 1}]}),
+                   thresholds={"mode": "absolute", "steps": [{"color": "green", "value": None}, {"color": "red", "value": 1}]}, no_value="0"),
         stat_panel(ds, 4, "Accounting Not Ready", not_ready, 5, x=16, w=8, h=4,
-                   thresholds={"mode": "absolute", "steps": [{"color": "green", "value": None}, {"color": "orange", "value": 1}]}),
+                   thresholds={"mode": "absolute", "steps": [{"color": "green", "value": None}, {"color": "orange", "value": 1}]}, no_value="0"),
         table_panel(ds, 5, "Quotas by Hard-Limit Utilization", top_targets, y=9, h=16,
                     sort_by=[{"displayName": "Hard utilization", "desc": True}]),
     ])

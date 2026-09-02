@@ -156,7 +156,8 @@ def timeseries_panel(ds, pid, title, targets, y, unit="short", h=8, w=24, x=0,
 
 def stat_panel(ds, pid, title, target, y, x=0, w=6, h=4, unit="short",
                decimals=None, thresholds=None, color_mode="value",
-               graph_mode="area", calc="lastNotNull", mappings=None):
+               graph_mode="area", calc="lastNotNull", mappings=None,
+               no_value=None):
     """Build a stat panel."""
     th = thresholds or dict(TH_GREEN)
     defaults = {"thresholds": th, "unit": unit}
@@ -164,6 +165,8 @@ def stat_panel(ds, pid, title, target, y, x=0, w=6, h=4, unit="short",
         defaults["decimals"] = decimals
     if mappings:
         defaults["mappings"] = mappings
+    if no_value is not None:
+        defaults["noValue"] = no_value
 
     return {
         "id": pid, "type": "stat", "title": title,
